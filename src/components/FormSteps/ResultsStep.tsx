@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Download, RefreshCw, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote } from 'lucide-react';
 import axios from 'axios';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
+import { getRandomQuote } from '../../utils/quotes';
 
 interface ResultsStepProps {
   userData: UserData;
@@ -16,32 +17,35 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showPastAdvice, setShowPastAdvice] = useState(false);
+  const [pastAdvice, setPastAdvice] = useState<any[]>([]);
+  const [mood, setMood] = useState<string>('');
+  const [quote, setQuote] = useState(getRandomQuote());
 
   useEffect(() => {
     const fetchAdvice = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/get-advice', userData, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true
-        });
+        const response = await axios.post('/api/get-advice', userData);
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
           setError(null);
           
-          // Save reflection to local storage
+          // Save reflection with mood
           const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
           const newReflection = {
             id: Date.now(),
             date: new Date().toISOString(),
             userData,
-            advice: response.data.advice
+            advice: response.data.advice,
+            mood,
+            quote
           };
           
           localStorage.setItem('personaMirrorReflections', 
             JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
+          
+          setPastAdvice(savedReflections);
         } else {
           throw new Error('Invalid response format');
         }
@@ -54,7 +58,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     };
 
     fetchAdvice();
-  }, [userData]);
+  }, [userData, mood, quote]);
 
   const copyToClipboard = async () => {
     if (!advice) return;
@@ -72,13 +76,27 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     if (!advice) return;
     
     const element = document.createElement('a');
-    const file = new Blob([`# Persona Mirror Reflection\n\n${advice}\n\n---\nGenerated on ${new Date().toLocaleDateString()}`], 
-      { type: 'text/plain' });
+    const file = new Blob([
+      `# Persona Mirror Reflection\n\nDate: ${new Date().toLocaleDateString()}\n\n${advice}\n\n---\n${quote.text}\n- ${quote.author}`
+    ], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = 'persona-mirror-reflection.txt';
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+  };
+
+  const shareAdvice = async () => {
+    if (!advice) return;
+    
+    try {
+      await navigator.share({
+        title: 'My Persona Mirror Reflection',
+        text: advice,
+      });
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
   };
 
   return (
@@ -96,6 +114,22 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         <p className="text-surface-600 dark:text-surface-400 max-w-2xl mx-auto">
           Based on your values, goals, struggles, and vision of your ideal self.
         </p>
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">How are you feeling right now?</label>
+        <select
+          value={mood}
+          onChange={(e) => setMood(e.target.value)}
+          className="input"
+        >
+          <option value="">Select your mood...</option>
+          <option value="optimistic">😊 Optimistic</option>
+          <option value="neutral">😐 Neutral</option>
+          <option value="anxious">😟 Anxious</option>
+          <option value="motivated">💪 Motivated</option>
+          <option value="confused">🤔 Confused</option>
+        </select>
       </div>
       
       <div className="card">
@@ -130,6 +164,14 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
                 </motion.p>
               ))}
             </div>
+
+            <div className="border-t border-surface-200 dark:border-surface-700 pt-4 mt-6">
+              <div className="flex items-center gap-2 text-surface-600 dark:text-surface-400">
+                <Quote size={16} />
+                <p className="italic text-sm">{quote.text}</p>
+              </div>
+              <p className="text-right text-sm text-surface-500 dark:text-surface-400">- {quote.author}</p>
+            </div>
             
             <div className="flex flex-wrap gap-3 pt-4 border-t border-surface-200 dark:border-surface-700">
               <button
@@ -142,7 +184,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
                 {copied ? "Copied!" : (
                   <>
                     <Share2 size={16} />
-                    Copy to Clipboard
+                    Copy
                   </>
                 )}
               </button>
@@ -154,10 +196,69 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
                 <Download size={16} />
                 Download
               </button>
+
+              {navigator.share && (
+                <button
+                  onClick={shareAdvice}
+                  className="btn btn-outline flex items-center gap-2"
+                >
+                  <Share2 size={16} />
+                  Share
+                </button>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {pastAdvice.length > 0 && (
+        <div className="mt-8">
+          <button
+            onClick={() => setShowPastAdvice(!showPastAdvice)}
+            className="btn btn-outline w-full flex items-center justify-between"
+          >
+            <span>Compare with Past Reflections</span>
+            {showPastAdvice ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          <AnimatePresence>
+            {showPastAdvice && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 space-y-4"
+              >
+                {pastAdvice.map((reflection) => (
+                  <div key={reflection.id} className="card">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {new Date(reflection.date).toLocaleDateString()}
+                        </p>
+                        {reflection.mood && (
+                          <p className="text-sm text-surface-500 dark:text-surface-400">
+                            Mood: {reflection.mood}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="prose prose-sm dark:prose-invert">
+                      {reflection.advice.split('\n\n').slice(0, 2).map((paragraph, i) => (
+                        <p key={i} className="font-serif">{paragraph}</p>
+                      ))}
+                      {reflection.advice.split('\n\n').length > 2 && (
+                        <p className="text-surface-500 dark:text-surface-400">...</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
       
       <div className="flex justify-between mt-8">
         <motion.button

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Sparkles } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { motion } from 'framer-motion';
 
@@ -44,26 +44,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             className="flex items-center gap-2"
           >
             <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor"
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-                className="text-primary-600 dark:text-primary-400"
-              >
-                <path d="M2 12c0-3.5 2.5-6 6.5-6 4 0 6 2.5 6 6 0 3.5-2 6-6 6s-4.5-2.5-6.5-6Z"/>
-                <path d="M8.5 6C13 6 15 9 15 12c0 6-6.5 6-6.5 6"/>
-                <path d="M8.5 18c5 0 6-3 6-6"/>
-                <path d="M9.5 6c4.5 0 6.5 3 6.5 6 0 6-6.5 6-6.5 6"/>
-                <path d="M9.5 18c5 0 6.5-3 6.5-6"/>
-              </svg>
+              <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" />
             </div>
-            <h1 className="text-xl font-bold m-0">Persona Mirror</h1>
+            <div>
+              <h1 className="text-xl font-bold m-0">Persona Mirror</h1>
+              <p className="text-sm text-surface-600 dark:text-surface-400">Reflect. Decide. Evolve.</p>
+            </div>
           </motion.div>
           
           <motion.button
@@ -81,13 +67,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       
       <main className="flex-1 py-8 px-4 sm:px-6 md:py-12">
         <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-primary-600 dark:text-primary-400 mb-4">
+              Your AI-Powered Self-Reflection Guide
+            </h2>
+            <p className="text-lg text-surface-600 dark:text-surface-400 max-w-2xl mx-auto">
+              Explore your values, goals, and decisions with the help of AI. 
+              Get personalized insights and actionable advice to align your choices with your authentic self.
+            </p>
+          </motion.div>
           {children}
         </div>
       </main>
       
-      <footer className="py-6 px-4 border-t border-surface-200 dark:border-surface-800 text-center text-sm text-surface-500">
-        <div className="max-w-7xl mx-auto">
-          <p className="mb-0">© {new Date().getFullYear()} Persona Mirror. Your reflections are saved locally.</p>
+      <footer className="py-6 px-4 border-t border-surface-200 dark:border-surface-800">
+        <div className="max-w-7xl mx-auto text-center">
+          <p className="text-sm text-surface-500 dark:text-surface-400">
+            © {new Date().getFullYear()} Persona Mirror. Your reflections are saved locally.
+          </p>
         </div>
       </footer>
     </div>
