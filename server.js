@@ -7,7 +7,6 @@ dotenv.config();
 
 const app = express();
 
-// Configure CORS with specific options
 app.use(cors({
   origin: true,
   methods: ['POST'],
@@ -16,7 +15,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// Add security headers
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -27,41 +25,71 @@ app.use((req, res, next) => {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Add health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
 app.post('/api/get-advice', async (req, res) => {
   try {
-    console.log('Received request body:', req.body);
-    
     const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision } = req.body;
 
     if (!coreValues || !lifeGoals || !currentStruggles || !idealSelf || !currentDecision) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const prompt = `You are the user's ideal self, helping them make life-aligned decisions.
-Their values: ${coreValues.join(', ')}
-Their goals: ${lifeGoals.join(', ')}
-Their struggles: ${currentStruggles.join(', ')}
-Their ideal self: ${idealSelf}
-They are currently facing this decision: ${currentDecision}
+    const prompt = `As an advanced AI mentor, analyze the following personal information and provide deep, actionable insights:
 
-As their ideal self, respond with:
-1. What would your ideal self do?
-2. Why?
-3. Encouragement or challenge.`;
+CORE VALUES: ${coreValues.join(', ')}
+LIFE GOALS: ${lifeGoals.join(', ')}
+CURRENT STRUGGLES: ${currentStruggles.join(', ')}
+IDEAL SELF VISION: ${idealSelf}
+CURRENT DECISION: ${currentDecision}
+
+Provide a comprehensive analysis in the following structure:
+
+1. Values Analysis
+- How the person's core values interconnect
+- Potential value conflicts and their resolution
+- How these values manifest in daily life
+
+2. Goals & Vision Alignment
+- Connection between stated goals and core values
+- Potential synergies between different goals
+- Gaps between current state and ideal self
+- Practical steps to bridge these gaps
+
+3. Challenge Analysis
+- Root causes of current struggles
+- How struggles might be serving a deeper purpose
+- Connection between struggles and growth opportunities
+- Specific strategies for overcoming each challenge
+
+4. Decision Framework
+- Analysis of the current decision through the lens of core values
+- Short-term vs long-term implications
+- Potential hidden opportunities or risks
+- Decision-making framework tailored to their values
+
+5. Action Plan
+- 3 immediate actions (next 24 hours)
+- 3 short-term strategies (next month)
+- 2 long-term development areas
+- Specific success metrics and milestones
+
+6. Mindset Shifts
+- Limiting beliefs to challenge
+- New perspectives to consider
+- Empowering reframes of current situations
+
+Conclude with a powerful, personalized message that connects their values, vision, and current situation into a meaningful narrative for growth.
+
+Format the response in clear sections with thoughtful transitions. Use specific examples and metaphors where appropriate. Focus on depth, practicality, and psychological insight.`;
 
     const model = genAI.getGenerativeModel({ model: process.env.MODEL_NAME || "gemini-pro" });
-    console.log('Sending request to Gemini API...');
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
-    console.log('Successfully received response from Gemini API');
     
     res.json({ advice: text });
   } catch (error) {
