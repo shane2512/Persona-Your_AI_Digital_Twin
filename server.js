@@ -54,7 +54,7 @@ As their ideal self, respond with:
 2. Why?
 3. Encouragement or challenge.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: process.env.MODEL_NAME || "gemini-pro" });
     console.log('Sending request to Gemini API...');
     
     const result = await model.generateContent(prompt);
@@ -78,4 +78,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API Key configured: ${process.env.GEMINI_API_KEY ? 'Yes' : 'No'}`);
+  console.log(`Using model: ${process.env.MODEL_NAME || "gemini-pro"}`);
 });
