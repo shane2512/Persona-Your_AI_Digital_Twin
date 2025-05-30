@@ -42,7 +42,7 @@ Keep the total response under 400 words and use clear formatting.`;
       const response = await result.response;
       const text = response.text();
       
-      // Format the response for better readability
+      
       const formattedText = text
         .split('\n\n')
         .map(p => p.trim())
