@@ -20,22 +20,20 @@ app.post('/api/get-advice', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const prompt = `As an advanced AI mentor, analyze the following personal information and provide deep, actionable insights:
+    const prompt = `As a concise AI advisor, analyze these inputs and provide clear, actionable advice:
 
-CORE VALUES: ${coreValues.join(', ')}
-LIFE GOALS: ${lifeGoals.join(', ')}
-CURRENT STRUGGLES: ${currentStruggles.join(', ')}
-IDEAL SELF VISION: ${idealSelf}
-CURRENT DECISION: ${currentDecision}
+Core Values: ${coreValues.join(', ')}
+Life Goals: ${lifeGoals.join(', ')}
+Struggles: ${currentStruggles.join(', ')}
+Ideal Self: ${idealSelf}
+Decision: ${currentDecision}
 
-Provide a comprehensive analysis that includes:
-1. How your core values align with your current decision
-2. Practical steps to overcome your struggles while pursuing your goals
-3. Specific actions to move closer to your ideal self
-4. A framework for making this decision based on your values
-5. Long-term implications and opportunities
+Provide a focused response with:
+1. Value alignment analysis (2-3 sentences)
+2. Practical steps for current challenges (3 bullet points)
+3. Decision framework based on values (2-3 sentences)
 
-Format the response in clear paragraphs with actionable advice.`;
+Keep the total response under 400 words and use clear formatting.`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     
@@ -43,7 +41,15 @@ Format the response in clear paragraphs with actionable advice.`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      res.json({ advice: text });
+      
+      // Format the response for better readability
+      const formattedText = text
+        .split('\n\n')
+        .map(p => p.trim())
+        .filter(p => p.length > 0)
+        .join('\n\n');
+      
+      res.json({ advice: formattedText });
     } catch (genError) {
       console.error('Gemini API Error:', genError);
       res.status(500).json({ 
