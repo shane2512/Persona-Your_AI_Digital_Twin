@@ -38,15 +38,23 @@ Provide a comprehensive analysis that includes:
 Format the response in clear paragraphs with actionable advice.`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
     
-    res.json({ advice: text });
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      res.json({ advice: text });
+    } catch (genError) {
+      console.error('Gemini API Error:', genError);
+      res.status(500).json({ 
+        error: 'Failed to generate advice',
+        details: genError.message 
+      });
+    }
   } catch (error) {
-    console.error('Error generating advice:', error);
+    console.error('Server Error:', error);
     res.status(500).json({ 
-      error: 'Failed to generate advice', 
+      error: 'Internal server error', 
       details: error.message 
     });
   }

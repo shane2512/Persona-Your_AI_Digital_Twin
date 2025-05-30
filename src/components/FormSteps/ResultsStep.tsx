@@ -26,11 +26,12 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     const fetchAdvice = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
         const response = await axios.post('/api/get-advice', userData);
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
-          setError(null);
           
           // Save reflection with mood
           const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
@@ -52,7 +53,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         }
       } catch (err: any) {
         console.error('Error fetching advice:', err);
-        setError(err.response?.data?.error || 'Failed to generate advice. Please try again.');
+        setError(err.response?.data?.error || err.message || 'Failed to generate advice. Please try again.');
       } finally {
         setLoading(false);
       }
