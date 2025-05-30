@@ -25,6 +25,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   useEffect(() => {
     const fetchAdvice = async () => {
       try {
+        setLoading(true);
         const response = await axios.post('/api/get-advice', userData);
         
         if (response.data && response.data.advice) {
@@ -49,7 +50,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         } else {
           throw new Error('Invalid response format');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching advice:', err);
         setError(err.response?.data?.error || 'Failed to generate advice. Please try again.');
       } finally {
