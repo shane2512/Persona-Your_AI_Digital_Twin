@@ -37,7 +37,7 @@ Provide a comprehensive analysis that includes:
 
 Format the response in clear paragraphs with actionable advice.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     
     try {
       const result = await model.generateContent(prompt);
@@ -65,5 +65,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('API Key configured:', !!process.env.GEMINI_API_KEY);
-  console.log('Using model: gemini-pro');
+  console.log('Using model: gemini-2.0-flash');
 });
