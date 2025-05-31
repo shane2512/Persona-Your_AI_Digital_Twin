@@ -28,7 +28,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        const response = await axios.post('https://persona-mirror-your-digital-twin-yt.vercel.app/api/get-advice.ts', userData);
+        const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/get-advice`, userData);
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
