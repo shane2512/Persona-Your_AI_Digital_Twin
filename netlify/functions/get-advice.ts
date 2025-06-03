@@ -36,7 +36,7 @@ Provide a focused response with:
 
 Keep the total response under 400 words and use clear formatting.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -62,6 +62,12 @@ Keep the total response under 400 words and use clear formatting.`;
     console.error('Error:', error);
     return {
       statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
       body: JSON.stringify({ 
         error: 'Failed to generate advice',
         details: error.message 
