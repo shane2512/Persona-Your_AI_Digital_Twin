@@ -28,12 +28,11 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/get-advice`, userData);
+        const response = await axios.post('/.netlify/functions/get-advice', userData);
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
           
-          // Save reflection with mood
           const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
           const newReflection = {
             id: Date.now(),
