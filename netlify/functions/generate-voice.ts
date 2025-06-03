@@ -1,17 +1,17 @@
 import { Handler } from '@netlify/functions';
 import axios from 'axios';
 
-const ELEVEN_LABS_API_KEY = 'sk_d59b51bc87cc8624296abc9fcb9e2db368f2838b710bbb02';
+const ELEVEN_LABS_API_KEY = process.env.ELEVEN_LABS_API_KEY;
 const VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
-const handler: Handler = async (event) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json'
-  };
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json'
+};
 
+const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -63,7 +63,10 @@ const handler: Handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: {
+        ...corsHeaders,
+        'Cache-Control': 'no-store'
+      },
       body: JSON.stringify({ audioUrl })
     };
   } catch (error: any) {
