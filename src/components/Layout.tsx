@@ -44,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Sparkles className="w-5 h-5 text-surface-900 dark:text-surface-50" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Persona Mirror</h1>
+              <h1 className="text-xl font-semibold tracking-tighter">Persona Mirror</h1>
               <p className="text-sm text-surface-600 dark:text-surface-400">Reflect & Evolve</p>
             </div>
           </motion.div>
@@ -70,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             transition={{ duration: 0.7 }}
             className="text-center mb-16 space-y-4"
           >
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tighter">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tighter">
               Your Path to Clarity
             </h2>
             <p className="text-lg text-surface-600 dark:text-surface-400 max-w-2xl mx-auto leading-relaxed">
