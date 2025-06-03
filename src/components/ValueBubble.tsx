@@ -8,26 +8,21 @@ interface ValueBubbleProps {
   totalItems: number;
 }
 
-// Define a set of colors to cycle through
 const bubbleColors = [
-  'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300',
-  'bg-secondary-100 text-secondary-800 dark:bg-secondary-900/30 dark:text-secondary-300',
-  'bg-accent-100 text-accent-800 dark:bg-accent-900/30 dark:text-accent-300',
-  'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300',
+  'bg-gradient-to-br from-calm-400 to-calm-500 text-white shadow-lg shadow-calm-400/20',
+  'bg-gradient-to-br from-calm-500 to-calm-600 text-white shadow-lg shadow-calm-500/20',
+  'bg-gradient-to-br from-calm-300 to-calm-400 text-surface-900 shadow-lg shadow-calm-300/20',
+  'bg-gradient-to-br from-calm-200 to-calm-300 text-surface-900 shadow-lg shadow-calm-200/20',
 ];
 
 const ValueBubble: React.FC<ValueBubbleProps> = ({ value, index, totalItems }) => {
-  // Calculate position within a circular arrangement
   const angle = (index / totalItems) * 2 * Math.PI;
-  const radius = 120; // Adjust based on your layout
+  const radius = 120;
   
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius;
   
-  // Pick a color based on the index
   const colorClass = bubbleColors[index % bubbleColors.length];
-  
-  // Calculate size based on importance (for this demo, random variation)
   const size = 60 + Math.floor(Math.random() * 30);
   
   return (
@@ -46,8 +41,10 @@ const ValueBubble: React.FC<ValueBubbleProps> = ({ value, index, totalItems }) =
         delay: 0.1 * index,
       }}
       className={cn(
-        "absolute flex items-center justify-center rounded-full p-3 text-center shadow-soft",
-        colorClass
+        "absolute flex items-center justify-center rounded-2xl backdrop-blur-sm",
+        "border-2 border-white/20 dark:border-white/10",
+        colorClass,
+        "hover:scale-110 transition-transform duration-300"
       )}
       style={{ 
         width: size,
@@ -56,7 +53,8 @@ const ValueBubble: React.FC<ValueBubbleProps> = ({ value, index, totalItems }) =
         transform: `translate(${x}px, ${y}px)`,
       }}
     >
-      <span className="text-sm font-medium leading-tight">{value}</span>
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 to-transparent" />
+      <span className="relative text-sm font-medium leading-tight">{value}</span>
     </motion.div>
   );
 };
