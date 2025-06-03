@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote } from 'lucide-react';
+import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote, Settings } from 'lucide-react';
 import axios from 'axios';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
+import MediaToggle from '../MediaToggle';
 
 interface ResultsStepProps {
   userData: UserData;
@@ -21,6 +22,18 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   const [pastAdvice, setPastAdvice] = useState<any[]>([]);
   const [mood, setMood] = useState<string>('');
   const [quote, setQuote] = useState(getRandomQuote());
+  
+  // Media state
+  const [mediaType, setMediaType] = useState<'voice' | 'video' | 'none'>('none');
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [enableMedia, setEnableMedia] = useState(true);
+  const [preferredMedia, setPreferredMedia] = useState<'voice' | 'video'>('voice');
+  const [showSettings, setShowSettings] = useState(false);
+  
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const fetchAdvice = async () => {
@@ -36,6 +49,10 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
+          
+          if (enableMedia) {
+            generateMedia(response.data.advice);
+          }
           
           const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
           const newReflection = {
@@ -63,7 +80,40 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     };
 
     fetchAdvice();
-  }, [userData, mood, quote]);
+  }, [userData, mood, quote, enableMedia]);
+
+  const generateMedia = async (text: string) => {
+    setMediaLoading(true);
+    setMediaError(null);
+    
+    try {
+      if (mediaType === 'voice') {
+        const response = await axios.post('/.netlify/functions/generate-voice', { text });
+        setMediaUrl(response.data.audioUrl);
+        if (audioRef.current) {
+          audioRef.current.play();
+        }
+      } else if (mediaType === 'video') {
+        const response = await axios.post('/.netlify/functions/generate-video', { text });
+        setMediaUrl(response.data.videoUrl);
+        if (videoRef.current) {
+          videoRef.current.play();
+        }
+      }
+    } catch (err: any) {
+      setMediaError('Media generation failed, showing text response instead.');
+      setMediaType('none');
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const handleMediaTypeChange = (type: 'voice' | 'video' | 'none') => {
+    setMediaType(type);
+    if (type !== 'none' && advice) {
+      generateMedia(advice);
+    }
+  };
 
   const copyToClipboard = async () => {
     if (!advice) return;
@@ -121,6 +171,66 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         </p>
       </div>
 
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="btn btn-outline p-2"
+        >
+          <Settings size={20} />
+        </button>
+      </div>
+
+      {showSettings && (
+        <div className="card mb-6">
+          <h3 className="text-lg font-semibold mb-4">Media Settings</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span>Enable Media Output</span>
+              <button
+                onClick={() => setEnableMedia(!enableMedia)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                  enableMedia ? "bg-primary-600" : "bg-surface-300"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                    enableMedia ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
+              </button>
+            </div>
+            
+            {enableMedia && (
+              <div className="flex items-center justify-between">
+                <span>Preferred Media Type</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPreferredMedia('voice')}
+                    className={cn(
+                      "px-3 py-1 rounded-lg",
+                      preferredMedia === 'voice' ? "bg-primary-100 text-primary-600" : "bg-surface-100"
+                    )}
+                  >
+                    Voice
+                  </button>
+                  <button
+                    onClick={() => setPreferredMedia('video')}
+                    className={cn(
+                      "px-3 py-1 rounded-lg",
+                      preferredMedia === 'video' ? "bg-primary-100 text-primary-600" : "bg-surface-100"
+                    )}
+                  >
+                    Video
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">How are you feeling right now?</label>
         <select
@@ -136,7 +246,14 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
           <option value="confused">🤔 Confused</option>
         </select>
       </div>
-      
+
+      <MediaToggle
+        mediaType={mediaType}
+        onMediaTypeChange={handleMediaTypeChange}
+        isLoading={mediaLoading}
+        error={mediaError}
+      />
+
       <div className="card">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
@@ -156,6 +273,26 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
           </div>
         ) : (
           <div className="space-y-6">
+            {mediaType === 'voice' && mediaUrl && (
+              <audio
+                ref={audioRef}
+                src={mediaUrl}
+                controls
+                className="w-full"
+                onError={() => setMediaError('Audio playback failed')}
+              />
+            )}
+
+            {mediaType === 'video' && mediaUrl && (
+              <video
+                ref={videoRef}
+                src={mediaUrl}
+                controls
+                className="w-full rounded-lg"
+                onError={() => setMediaError('Video playback failed')}
+              />
+            )}
+
             <div className="prose prose-lg dark:prose-invert max-w-none">
               {advice?.split('\n\n').map((paragraph, i) => (
                 <motion.p
