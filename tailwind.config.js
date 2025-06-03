@@ -38,21 +38,18 @@ export default {
       backgroundImage: {
         'gradient-calm': 'linear-gradient(135deg, rgb(14, 165, 233) 0%, rgb(56, 189, 248) 100%)',
         'gradient-calm-dark': 'linear-gradient(135deg, rgb(2, 132, 199) 0%, rgb(14, 165, 233) 100%)',
-        'gradient-subtle': 'radial-gradient(circle at center, rgb(255, 255, 255) 0%, rgb(240, 249, 255) 100%)',
-        'gradient-dark': 'radial-gradient(circle at center, rgb(7, 89, 133) 0%, rgb(12, 74, 110) 100%)',
-      },
-      boxShadow: {
-        'calm': '0 4px 12px -1px rgba(14, 165, 233, 0.1), 0 2px 6px -1px rgba(14, 165, 233, 0.06)',
-        'calm-hover': '0 8px 16px -2px rgba(14, 165, 233, 0.15), 0 3px 8px -2px rgba(14, 165, 233, 0.1)',
+        'gradient-radial': 'radial-gradient(circle at center, var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
       animation: {
-        'float': 'float 6s ease-in-out infinite',
+        'float': 'float 8s ease-in-out infinite',
+        'float-delayed': 'float 8s ease-in-out infinite -4s',
         'pulse-calm': 'pulse-calm 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
         float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' },
+          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-12px) rotate(1deg)' },
         },
         'pulse-calm': {
           '0%, 100%': { opacity: 1 },
