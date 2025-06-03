@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/api/*"
+  from = "/.netlify/functions/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
@@ -15,3 +15,7 @@
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["axios"]
+
+[build.environment]
+  NODE_VERSION = "18"

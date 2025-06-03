@@ -1,7 +1,10 @@
 import { Handler } from '@netlify/functions';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI('AIzaSyDdN9F95t_E7Zx4X6M8rMWaCvmbPOgRyuk');
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const MODEL_NAME = process.env.MODEL_NAME || 'gemini-2.0-flash';
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY!);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,7 +56,7 @@ Provide a focused response with:
 
 Keep the total response under 400 words and use clear formatting.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -67,7 +70,10 @@ Keep the total response under 400 words and use clear formatting.`;
     
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: {
+        ...corsHeaders,
+        'Cache-Control': 'no-store'
+      },
       body: JSON.stringify({ advice: formattedText })
     };
   } catch (error: any) {
