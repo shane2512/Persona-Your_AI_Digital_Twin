@@ -53,14 +53,20 @@ const ChipInput: React.FC<ChipInputProps> = ({
 
   return (
     <div className="form-group">
-      <label htmlFor={`chip-input-${label}`} className="block text-sm font-medium mb-1">
+      <label htmlFor={`chip-input-${label}`} className="block text-base font-medium mb-2 text-calm-700 dark:text-calm-200">
         {label}
       </label>
       
       <div 
         className={cn(
-          "flex flex-wrap gap-2 p-2 border rounded-md min-h-[80px] focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500",
-          "bg-white dark:bg-surface-800 border-surface-300 dark:border-surface-700"
+          "relative flex flex-wrap gap-2 p-4 rounded-2xl min-h-[100px]",
+          "bg-white/90 dark:bg-surface-800/90 backdrop-blur-sm",
+          "border-2 border-calm-200/80 dark:border-calm-400/30",
+          "shadow-[0_4px_12px_-2px_rgba(14,165,233,0.1)]",
+          "dark:shadow-[0_4px_12px_-2px_rgba(56,189,248,0.2)]",
+          "focus-within:ring-2 focus-within:ring-calm-500/30 focus-within:border-calm-500/50",
+          "dark:focus-within:ring-calm-400/50 dark:focus-within:border-calm-400/70",
+          "transition-all duration-300"
         )}
         onClick={() => inputRef.current?.focus()}
       >
@@ -72,16 +78,31 @@ const ChipInput: React.FC<ChipInputProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center gap-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 px-2 py-1 rounded-full text-sm"
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-xl",
+                "bg-calm-100/80 dark:bg-calm-400/20",
+                "border border-calm-200 dark:border-calm-400/40",
+                "text-calm-700 dark:text-calm-200",
+                "shadow-[0_2px_4px_rgba(14,165,233,0.06)]",
+                "dark:shadow-[0_2px_4px_rgba(56,189,248,0.1)]",
+                "group hover:bg-calm-200/80 dark:hover:bg-calm-400/30",
+                "transition-all duration-300"
+              )}
             >
-              <span>{chip}</span>
+              <span className="text-sm font-medium">{chip}</span>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeChip(index);
                 }}
-                className="text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 focus:outline-none"
+                className={cn(
+                  "p-1 rounded-full",
+                  "text-calm-500 hover:text-calm-700 dark:text-calm-300 dark:hover:text-calm-100",
+                  "hover:bg-calm-200 dark:hover:bg-calm-400/40",
+                  "focus:outline-none focus:ring-2 focus:ring-calm-500/30 dark:focus:ring-calm-400/50",
+                  "transition-colors duration-200"
+                )}
                 aria-label={`Remove ${chip}`}
               >
                 <X size={14} />
@@ -99,14 +120,26 @@ const ChipInput: React.FC<ChipInputProps> = ({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={value.length === 0 ? placeholder : ''}
-            className="flex-1 min-w-[120px] bg-transparent border-none focus:outline-none p-1 text-sm"
+            className={cn(
+              "flex-1 min-w-[120px] bg-transparent border-none p-1.5",
+              "text-sm text-calm-700 dark:text-calm-100",
+              "placeholder-calm-400/80 dark:placeholder-calm-400/60",
+              "focus:outline-none focus:ring-0"
+            )}
           />
         )}
       </div>
       
-      <div className="flex justify-between mt-1 text-xs text-surface-500 dark:text-surface-400">
-        {helperText && <span>{helperText}</span>}
-        <span className="ml-auto">{value.length}/{maxChips}</span>
+      <div className="flex justify-between mt-2 text-xs">
+        {helperText && (
+          <span className="text-calm-600 dark:text-calm-400">{helperText}</span>
+        )}
+        <span className={cn(
+          "ml-auto",
+          value.length >= maxChips ? "text-calm-500 dark:text-calm-400" : "text-calm-400 dark:text-calm-500"
+        )}>
+          {value.length}/{maxChips}
+        </span>
       </div>
     </div>
   );
