@@ -37,7 +37,7 @@ export default {
       },
       backgroundImage: {
         'gradient-calm': 'linear-gradient(135deg, rgb(14, 165, 233) 0%, rgb(56, 189, 248) 100%)',
-        'gradient-calm-dark': 'linear-gradient(135deg, rgb(2, 132, 199) 0%, rgb(14, 165, 233) 100%)',
+        'gradient-calm-dark': 'linear-gradient(135deg, rgb(56, 189, 248) 0%, rgb(125, 211, 252) 100%)',
         'gradient-radial': 'radial-gradient(circle at center, var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
@@ -55,6 +55,10 @@ export default {
           '0%, 100%': { opacity: 1 },
           '50%': { opacity: .7 },
         },
+      },
+      boxShadow: {
+        'glow-calm': '0 0 40px -10px rgba(56, 189, 248, 0.3)',
+        'glow-calm-lg': '0 0 60px -15px rgba(56, 189, 248, 0.4)',
       },
     },
   },
