@@ -28,7 +28,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        const response = await axios.post('/.netlify/functions/get-advice', userData);
+        const response = await axios.post('/api/get-advice', userData);
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
