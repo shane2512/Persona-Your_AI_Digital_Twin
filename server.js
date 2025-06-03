@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI('AIzaSyDdN9F95t_E7Zx4X6M8rMWaCvmbPOgRyuk');
 
 app.post('/api/get-advice', async (req, res) => {
   try {
@@ -37,30 +37,21 @@ Keep the total response under 400 words and use clear formatting.`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     
-    try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      
-      const formattedText = text
-        .split('\n\n')
-        .map(p => p.trim())
-        .filter(p => p.length > 0)
-        .join('\n\n');
-      
-      res.json({ advice: formattedText });
-    } catch (genError) {
-      console.error('Gemini API Error:', genError);
-      res.status(500).json({ 
-        error: 'Failed to generate advice',
-        details: genError.message 
-      });
-    }
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    const formattedText = text
+      .split('\n\n')
+      .map(p => p.trim())
+      .filter(p => p.length > 0)
+      .join('\n\n');
+    
+    res.json({ advice: formattedText });
   } catch (error) {
-    console.error('Server Error:', error);
+    console.error('Error:', error);
     res.status(500).json({ 
-      error: 'Internal server error', 
+      error: 'Failed to generate advice',
       details: error.message 
     });
   }
@@ -70,6 +61,4 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('API Key configured:', !!process.env.GEMINI_API_KEY);
-  console.log('Using model: gemini-2.0-flash');
 });
