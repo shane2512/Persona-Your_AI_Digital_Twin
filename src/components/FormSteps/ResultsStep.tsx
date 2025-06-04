@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote, Settings } from 'lucide-react';
-import axios from 'axios';
+import toast from 'react-hot-toast';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
 import MediaToggle from '../MediaToggle';
+import { generateAdvice, generateVoice, generateVideo, APIError } from '../../utils/api';
 
 interface ResultsStepProps {
   userData: UserData;
@@ -41,72 +42,65 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        const response = await axios.post('/.netlify/functions/get-advice', userData, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const adviceText = await generateAdvice(userData);
+        setAdvice(adviceText);
         
-        if (response.data && response.data.advice) {
-          setAdvice(response.data.advice);
-          
-          if (enableMedia) {
-            generateMedia(response.data.advice);
+        if (enableMedia) {
+          try {
+            if (mediaType === 'voice') {
+              const audioUrl = await generateVoice(adviceText);
+              setMediaUrl(audioUrl);
+              if (audioRef.current) {
+                audioRef.current.play();
+              }
+            } else if (mediaType === 'video') {
+              const videoUrl = await generateVideo(adviceText);
+              setMediaUrl(videoUrl);
+              if (videoRef.current) {
+                videoRef.current.play();
+              }
+            }
+          } catch (mediaError: any) {
+            if (mediaError instanceof APIError) {
+              setMediaError(mediaError.message);
+            } else {
+              setMediaError('Media generation failed. Showing text response instead.');
+            }
+            setMediaType('none');
           }
-          
-          const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
-          const newReflection = {
-            id: Date.now(),
-            date: new Date().toISOString(),
-            userData,
-            advice: response.data.advice,
-            mood,
-            quote
-          };
-          
-          localStorage.setItem('personaMirrorReflections', 
-            JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
-          
-          setPastAdvice(savedReflections);
-        } else {
-          throw new Error('Invalid response format');
         }
+        
+        // Update local storage with new reflection
+        const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
+        const newReflection = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          userData,
+          advice: adviceText,
+          mood,
+          quote
+        };
+        
+        localStorage.setItem('personaMirrorReflections', 
+          JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
+        
+        setPastAdvice(savedReflections);
       } catch (err: any) {
-        console.error('Error fetching advice:', err);
-        setError(err.response?.data?.error || err.message || 'Failed to generate advice. Please try again.');
+        console.error('Error:', err);
+        if (err instanceof APIError) {
+          setError(err.message);
+          toast.error(err.message);
+        } else {
+          setError('Failed to generate advice. Please try again.');
+          toast.error('Something went wrong. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchAdvice();
-  }, [userData, mood, quote, enableMedia]);
-
-  const generateMedia = async (text: string) => {
-    setMediaLoading(true);
-    setMediaError(null);
-    
-    try {
-      if (mediaType === 'voice') {
-        const response = await axios.post('/.netlify/functions/generate-voice', { text });
-        setMediaUrl(response.data.audioUrl);
-        if (audioRef.current) {
-          audioRef.current.play();
-        }
-      } else if (mediaType === 'video') {
-        const response = await axios.post('/.netlify/functions/generate-video', { text });
-        setMediaUrl(response.data.videoUrl);
-        if (videoRef.current) {
-          videoRef.current.play();
-        }
-      }
-    } catch (err: any) {
-      setMediaError('Media generation failed, showing text response instead.');
-      setMediaType('none');
-    } finally {
-      setMediaLoading(false);
-    }
-  };
+  }, [userData, mood, quote, enableMedia, mediaType]);
 
   const handleMediaTypeChange = (type: 'voice' | 'video' | 'none') => {
     setMediaType(type);

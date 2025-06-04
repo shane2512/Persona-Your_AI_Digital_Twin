@@ -16,6 +16,16 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["axios"]
+  included_files = ["netlify/functions/**"]
+  
+  # Increase function timeout and memory
+  [functions.generate-video]
+    timeout = 30
+    memory = 1024
+
+  [functions.generate-voice]
+    timeout = 30
+    memory = 1024
 
 [build.environment]
   NODE_VERSION = "18"
