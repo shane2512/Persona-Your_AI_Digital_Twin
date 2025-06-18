@@ -98,22 +98,24 @@ const handler: Handler = async (event) => {
       };
     }
 
-    // Tavus API endpoint
+    // Tavus API endpoint - using the exact URL from your code
     const apiUrl = 'https://tavusapi.com/v2/videos';
 
-    // Prepare request headers
+    // Prepare request headers - using exact structure from your code
     const requestHeaders = {
       'Content-Type': 'application/json',
       'x-api-key': TAVUS_API_KEY
     };
 
-    // Prepare request payload
+    // Prepare request payload - using exact structure from your code
     const payload = {
-      replica_id: 'rb17cf590e15', // Default replica ID
-      script: text.trim()
+      replica_id: 'r665388ec672', // Updated replica ID from your code
+      script: text.trim(),
+      video_name: 'Persona Mirror Reflection' // Added video_name as in your code
     };
 
     console.log(`Generating video for text: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+    console.log('Using replica_id:', payload.replica_id);
 
     // Make request to Tavus API with timeout
     const controller = new AbortController();
@@ -200,7 +202,7 @@ const handler: Handler = async (event) => {
           headers: corsHeaders,
           body: JSON.stringify({ 
             error: 'Invalid input',
-            message: 'The provided text cannot be processed for video generation'
+            message: 'The provided text or replica_id cannot be processed for video generation'
           })
         };
       }
@@ -238,6 +240,7 @@ const handler: Handler = async (event) => {
     const status = responseData.status;
     const downloadUrl = responseData.download_url;
     const streamUrl = responseData.stream_url;
+    const videoName = responseData.video_name;
 
     // Tavus returns different response formats depending on the status
     let videoUrl = downloadUrl || streamUrl;
@@ -252,6 +255,7 @@ const handler: Handler = async (event) => {
         body: JSON.stringify({ 
           videoId,
           status: status || 'processing',
+          videoName,
           message: 'Video is being generated. This may take a few minutes.',
           success: true
         })
@@ -282,6 +286,7 @@ const handler: Handler = async (event) => {
         status: status || 'completed',
         downloadUrl,
         streamUrl,
+        videoName,
         success: true
       })
     };
