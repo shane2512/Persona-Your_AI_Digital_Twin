@@ -31,6 +31,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   const [enableMedia, setEnableMedia] = useState(true);
   const [preferredMedia, setPreferredMedia] = useState<'voice' | 'video'>('voice');
   const [showSettings, setShowSettings] = useState(false);
+  const [videoDisabled, setVideoDisabled] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -142,6 +143,16 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
 
         if (!response.ok) {
           const errorData = await response.json();
+          
+          // Handle payment required error specifically
+          if (response.status === 400 && errorData.message && 
+              (errorData.message.toLowerCase().includes('payment') || 
+               errorData.message.toLowerCase().includes('credit') ||
+               errorData.message.toLowerCase().includes('billing'))) {
+            setVideoDisabled(true);
+            throw new Error('Video generation requires a paid Tavus account. Please check your Tavus billing or use voice generation instead.');
+          }
+          
           throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
         }
 
@@ -183,6 +194,12 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   };
 
   const handleMediaTypeChange = (type: 'voice' | 'video' | 'none') => {
+    // Prevent video selection if disabled due to payment issues
+    if (type === 'video' && videoDisabled) {
+      setMediaError('Video generation is currently unavailable due to account limitations. Please use voice generation or upgrade your Tavus account.');
+      return;
+    }
+    
     setMediaType(type);
     setMediaUrl(null);
     setMediaError(null);
@@ -294,14 +311,25 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
                   </button>
                   <button
                     onClick={() => setPreferredMedia('video')}
+                    disabled={videoDisabled}
                     className={cn(
                       "px-3 py-1 rounded-lg",
-                      preferredMedia === 'video' ? "bg-primary-100 text-primary-600" : "bg-surface-100"
+                      preferredMedia === 'video' ? "bg-primary-100 text-primary-600" : "bg-surface-100",
+                      videoDisabled && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    Video
+                    Video {videoDisabled && '(Unavailable)'}
                   </button>
                 </div>
+              </div>
+            )}
+            
+            {videoDisabled && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  <strong>Video Generation Unavailable:</strong> Your Tavus account requires payment or additional credits. 
+                  Please check your <a href="https://tavus.io/" target="_blank" rel="noopener noreferrer" className="underline">Tavus dashboard</a> or use voice generation instead.
+                </p>
               </div>
             )}
           </div>
@@ -329,6 +357,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         onMediaTypeChange={handleMediaTypeChange}
         isLoading={mediaLoading}
         error={mediaError}
+        videoDisabled={videoDisabled}
       />
 
       <div className="card">
