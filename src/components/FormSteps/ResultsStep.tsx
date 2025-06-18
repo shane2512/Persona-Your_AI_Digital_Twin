@@ -150,6 +150,19 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         if (data.videoUrl) {
           setMediaUrl(data.videoUrl);
           console.log('Video generation successful');
+          
+          // Auto-play the video after a short delay
+          setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(e => {
+                console.log('Auto-play prevented by browser:', e);
+              });
+            }
+          }, 500);
+        } else if (data.status === 'processing') {
+          // Handle case where video is still being processed
+          setMediaError('Video is being generated. This may take a few minutes. Please try again later.');
+          setMediaType('none');
         } else {
           throw new Error('No video URL received from video generation service');
         }
