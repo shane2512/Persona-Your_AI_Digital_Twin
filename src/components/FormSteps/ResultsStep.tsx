@@ -44,13 +44,15 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         const response = await axios.post('/.netlify/functions/get-advice', userData, {
           headers: {
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 30000 // 30 second timeout
         });
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
           
-          if (enableMedia) {
+          if (enableMedia && preferredMedia === 'voice') {
+            setMediaType('voice');
             generateMedia(response.data.advice);
           }
           
@@ -80,28 +82,62 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     };
 
     fetchAdvice();
-  }, [userData, mood, quote, enableMedia]);
+  }, [userData, mood, quote, enableMedia, preferredMedia]);
 
   const generateMedia = async (text: string) => {
+    if (mediaType === 'none') return;
+    
     setMediaLoading(true);
     setMediaError(null);
+    setMediaUrl(null);
     
     try {
+      let response;
+      
       if (mediaType === 'voice') {
-        const response = await axios.post('/.netlify/functions/generate-voice', { text });
-        setMediaUrl(response.data.audioUrl);
-        if (audioRef.current) {
-          audioRef.current.play();
+        console.log('Generating voice audio...');
+        response = await axios.post('/.netlify/functions/generate-voice', 
+          { text }, 
+          { 
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 30000 // 30 second timeout
+          }
+        );
+        
+        if (response.data?.audioUrl) {
+          setMediaUrl(response.data.audioUrl);
+          console.log('Voice generation successful');
+        } else {
+          throw new Error('No audio URL received from voice generation service');
         }
       } else if (mediaType === 'video') {
-        const response = await axios.post('/.netlify/functions/generate-video', { text });
-        setMediaUrl(response.data.videoUrl);
-        if (videoRef.current) {
-          videoRef.current.play();
+        console.log('Generating video...');
+        response = await axios.post('/.netlify/functions/generate-video', 
+          { text }, 
+          { 
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 60000 // 60 second timeout for video
+          }
+        );
+        
+        if (response.data?.videoUrl) {
+          setMediaUrl(response.data.videoUrl);
+          console.log('Video generation successful');
+        } else {
+          throw new Error('No video URL received from video generation service');
         }
       }
     } catch (err: any) {
-      setMediaError('Media generation failed, showing text response instead.');
+      console.error(`Error generating ${mediaType}:`, err);
+      
+      let errorMessage = 'Media generation failed';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setMediaError(`${errorMessage}. Showing text response instead.`);
       setMediaType('none');
     } finally {
       setMediaLoading(false);
@@ -110,6 +146,9 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
 
   const handleMediaTypeChange = (type: 'voice' | 'video' | 'none') => {
     setMediaType(type);
+    setMediaUrl(null);
+    setMediaError(null);
+    
     if (type !== 'none' && advice) {
       generateMedia(advice);
     }
@@ -274,23 +313,35 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         ) : (
           <div className="space-y-6">
             {mediaType === 'voice' && mediaUrl && (
-              <audio
-                ref={audioRef}
-                src={mediaUrl}
-                controls
-                className="w-full"
-                onError={() => setMediaError('Audio playback failed')}
-              />
+              <div className="bg-surface-50 dark:bg-surface-800 p-4 rounded-lg">
+                <audio
+                  ref={audioRef}
+                  src={mediaUrl}
+                  controls
+                  className="w-full"
+                  onError={(e) => {
+                    console.error('Audio playback error:', e);
+                    setMediaError('Audio playback failed. Please try regenerating.');
+                  }}
+                  onLoadStart={() => console.log('Audio loading started')}
+                  onCanPlay={() => console.log('Audio can play')}
+                />
+              </div>
             )}
 
             {mediaType === 'video' && mediaUrl && (
-              <video
-                ref={videoRef}
-                src={mediaUrl}
-                controls
-                className="w-full rounded-lg"
-                onError={() => setMediaError('Video playback failed')}
-              />
+              <div className="bg-surface-50 dark:bg-surface-800 p-4 rounded-lg">
+                <video
+                  ref={videoRef}
+                  src={mediaUrl}
+                  controls
+                  className="w-full rounded-lg"
+                  onError={(e) => {
+                    console.error('Video playback error:', e);
+                    setMediaError('Video playback failed. Please try regenerating.');
+                  }}
+                />
+              </div>
             )}
 
             <div className="prose prose-lg dark:prose-invert max-w-none">
