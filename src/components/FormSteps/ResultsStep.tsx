@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote, Settings } from 'lucide-react';
+import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote } from 'lucide-react';
 import axios from 'axios';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
-import MediaToggle from '../MediaToggle';
 
 interface ResultsStepProps {
   userData: UserData;
@@ -22,19 +21,6 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   const [pastAdvice, setPastAdvice] = useState<any[]>([]);
   const [mood, setMood] = useState<string>('');
   const [quote, setQuote] = useState(getRandomQuote());
-  
-  // Media state
-  const [mediaType, setMediaType] = useState<'voice' | 'video' | 'none'>('none');
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaError, setMediaError] = useState<string | null>(null);
-  const [enableMedia, setEnableMedia] = useState(true);
-  const [preferredMedia, setPreferredMedia] = useState<'voice' | 'video'>('voice');
-  const [showSettings, setShowSettings] = useState(false);
-  const [videoDisabled, setVideoDisabled] = useState(false);
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const fetchAdvice = async () => {
@@ -51,12 +37,6 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
-          
-          // Auto-generate media if enabled
-          if (enableMedia && preferredMedia === 'voice') {
-            setMediaType('voice');
-            generateMedia(response.data.advice);
-          }
           
           const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
           const newReflection = {
@@ -84,130 +64,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     };
 
     fetchAdvice();
-  }, [userData, mood, quote, enableMedia, preferredMedia]);
-
-  const generateMedia = async (text: string) => {
-    if (mediaType === 'none') return;
-    
-    setMediaLoading(true);
-    setMediaError(null);
-    setMediaUrl(null);
-    
-    try {
-      let response;
-      
-      if (mediaType === 'voice') {
-        console.log('Generating voice audio...');
-        
-        // Make the request to our Netlify function
-        response = await fetch('/.netlify/functions/generate-voice', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        if (data.audioUrl) {
-          setMediaUrl(data.audioUrl);
-          console.log('Voice generation successful, audio size:', data.size, 'bytes');
-          
-          // Auto-play the audio after a short delay
-          setTimeout(() => {
-            if (audioRef.current) {
-              audioRef.current.play().catch(e => {
-                console.log('Auto-play prevented by browser:', e);
-              });
-            }
-          }, 500);
-        } else {
-          throw new Error('No audio URL received from voice generation service');
-        }
-      } else if (mediaType === 'video') {
-        console.log('Generating video...');
-        
-        response = await fetch('/.netlify/functions/generate-video', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          
-          // Handle payment required error specifically
-          if (response.status === 400 && errorData.message && 
-              (errorData.message.toLowerCase().includes('payment') || 
-               errorData.message.toLowerCase().includes('credit') ||
-               errorData.message.toLowerCase().includes('billing'))) {
-            setVideoDisabled(true);
-            throw new Error('Video generation requires a paid Tavus account. Please check your Tavus billing or use voice generation instead.');
-          }
-          
-          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        if (data.videoUrl) {
-          setMediaUrl(data.videoUrl);
-          console.log('Video generation successful');
-          
-          // Auto-play the video after a short delay
-          setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.play().catch(e => {
-                console.log('Auto-play prevented by browser:', e);
-              });
-            }
-          }, 500);
-        } else if (data.status === 'processing') {
-          // Handle case where video is still being processed
-          setMediaError('Video is being generated. This may take a few minutes. Please try again later.');
-          setMediaType('none');
-        } else {
-          throw new Error('No video URL received from video generation service');
-        }
-      }
-    } catch (err: any) {
-      console.error(`Error generating ${mediaType}:`, err);
-      
-      let errorMessage = 'Media generation failed';
-      if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setMediaError(`${errorMessage}. Showing text response instead.`);
-      setMediaType('none');
-    } finally {
-      setMediaLoading(false);
-    }
-  };
-
-  const handleMediaTypeChange = (type: 'voice' | 'video' | 'none') => {
-    // Prevent video selection if disabled due to payment issues
-    if (type === 'video' && videoDisabled) {
-      setMediaError('Video generation is currently unavailable due to account limitations. Please use voice generation or upgrade your Tavus account.');
-      return;
-    }
-    
-    setMediaType(type);
-    setMediaUrl(null);
-    setMediaError(null);
-    
-    if (type !== 'none' && advice) {
-      generateMedia(advice);
-    }
-  };
+  }, [userData, mood, quote]);
 
   const copyToClipboard = async () => {
     if (!advice) return;
@@ -265,77 +122,6 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         </p>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="btn btn-outline p-2"
-        >
-          <Settings size={20} />
-        </button>
-      </div>
-
-      {showSettings && (
-        <div className="card mb-6">
-          <h3 className="text-lg font-semibold mb-4">Media Settings</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span>Enable Media Output</span>
-              <button
-                onClick={() => setEnableMedia(!enableMedia)}
-                className={cn(
-                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                  enableMedia ? "bg-primary-600" : "bg-surface-300"
-                )}
-              >
-                <span
-                  className={cn(
-                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                    enableMedia ? "translate-x-6" : "translate-x-1"
-                  )}
-                />
-              </button>
-            </div>
-            
-            {enableMedia && (
-              <div className="flex items-center justify-between">
-                <span>Preferred Media Type</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPreferredMedia('voice')}
-                    className={cn(
-                      "px-3 py-1 rounded-lg",
-                      preferredMedia === 'voice' ? "bg-primary-100 text-primary-600" : "bg-surface-100"
-                    )}
-                  >
-                    Voice
-                  </button>
-                  <button
-                    onClick={() => setPreferredMedia('video')}
-                    disabled={videoDisabled}
-                    className={cn(
-                      "px-3 py-1 rounded-lg",
-                      preferredMedia === 'video' ? "bg-primary-100 text-primary-600" : "bg-surface-100",
-                      videoDisabled && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    Video {videoDisabled && '(Unavailable)'}
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {videoDisabled && (
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  <strong>Video Generation Unavailable:</strong> Your Tavus account requires payment or additional credits. 
-                  Please check your <a href="https://tavus.io/" target="_blank" rel="noopener noreferrer" className="underline">Tavus dashboard</a> or use voice generation instead.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">How are you feeling right now?</label>
         <select
@@ -351,14 +137,6 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
           <option value="confused">🤔 Confused</option>
         </select>
       </div>
-
-      <MediaToggle
-        mediaType={mediaType}
-        onMediaTypeChange={handleMediaTypeChange}
-        isLoading={mediaLoading}
-        error={mediaError}
-        videoDisabled={videoDisabled}
-      />
 
       <div className="card">
         {loading ? (
@@ -379,62 +157,6 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
           </div>
         ) : (
           <div className="space-y-6">
-            {mediaType === 'voice' && mediaUrl && (
-              <div className="bg-surface-50 dark:bg-surface-800 p-4 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-surface-600 dark:text-surface-400">
-                    🎵 Audio Response
-                  </span>
-                  <button
-                    onClick={() => generateMedia(advice!)}
-                    className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-                    disabled={mediaLoading}
-                  >
-                    {mediaLoading ? 'Regenerating...' : 'Regenerate'}
-                  </button>
-                </div>
-                <audio
-                  ref={audioRef}
-                  src={mediaUrl}
-                  controls
-                  className="w-full"
-                  onError={(e) => {
-                    console.error('Audio playback error:', e);
-                    setMediaError('Audio playback failed. Please try regenerating.');
-                  }}
-                  onLoadStart={() => console.log('Audio loading started')}
-                  onCanPlay={() => console.log('Audio can play')}
-                />
-              </div>
-            )}
-
-            {mediaType === 'video' && mediaUrl && (
-              <div className="bg-surface-50 dark:bg-surface-800 p-4 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-surface-600 dark:text-surface-400">
-                    🎥 Video Response
-                  </span>
-                  <button
-                    onClick={() => generateMedia(advice!)}
-                    className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-                    disabled={mediaLoading}
-                  >
-                    {mediaLoading ? 'Regenerating...' : 'Regenerate'}
-                  </button>
-                </div>
-                <video
-                  ref={videoRef}
-                  src={mediaUrl}
-                  controls
-                  className="w-full rounded-lg"
-                  onError={(e) => {
-                    console.error('Video playback error:', e);
-                    setMediaError('Video playback failed. Please try regenerating.');
-                  }}
-                />
-              </div>
-            )}
-
             <div className="prose prose-lg dark:prose-invert max-w-none">
               {advice?.split('\n\n').map((paragraph, i) => (
                 <motion.p
