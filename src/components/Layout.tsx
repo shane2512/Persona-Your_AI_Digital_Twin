@@ -1,7 +1,11 @@
-import React from 'react';
-import { Moon, Sun, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Moon, Sun, Sparkles, LogIn, UserPlus } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { motion } from 'framer-motion';
+import { useAuth } from '../hooks/useAuth';
+import AuthModal from './AuthModal';
+import UserMenu from './UserMenu';
+import ChatBot from './ChatBot';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +13,10 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [darkMode, setDarkMode] = React.useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [chatBotOpen, setChatBotOpen] = useState(false);
+  const { user, loading } = useAuth();
 
   React.useEffect(() => {
     const isDark = localStorage.getItem('darkMode') === 'true';
@@ -28,6 +36,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  };
+
+  const openAuthModal = (mode: 'signin' | 'signup') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
   };
 
   return (
@@ -58,17 +71,44 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </motion.div>
           
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            onClick={toggleDarkMode}
-            className="relative p-3 rounded-xl bg-white/50 dark:bg-surface-700/50 hover:bg-calm-50 dark:hover:bg-calm-900/30 transition-colors duration-300 shadow-lg shadow-calm-400/10 dark:shadow-calm-500/10"
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/5 to-transparent" />
-            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </motion.button>
+          <div className="flex items-center gap-4">
+            {!loading && (
+              <>
+                {user ? (
+                  <UserMenu onChatOpen={() => setChatBotOpen(true)} />
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => openAuthModal('signin')}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-calm-600 dark:text-calm-400 hover:text-calm-700 dark:hover:text-calm-300 transition-colors"
+                    >
+                      <LogIn size={16} />
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => openAuthModal('signup')}
+                      className="flex items-center gap-2 px-4 py-2 bg-calm-500 hover:bg-calm-600 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-calm-400/20"
+                    >
+                      <UserPlus size={16} />
+                      Sign Up
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+            
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              onClick={toggleDarkMode}
+              className="relative p-3 rounded-xl bg-white/50 dark:bg-surface-700/50 hover:bg-calm-50 dark:hover:bg-calm-900/30 transition-colors duration-300 shadow-lg shadow-calm-400/10 dark:shadow-calm-500/10"
+              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/5 to-transparent" />
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </motion.button>
+          </div>
         </div>
       </header>
       
@@ -100,6 +140,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </p>
         </div>
       </footer>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        mode={authMode}
+        onModeChange={setAuthMode}
+      />
+
+      <ChatBot
+        isOpen={chatBotOpen}
+        onClose={() => setChatBotOpen(false)}
+      />
     </div>
   );
 };

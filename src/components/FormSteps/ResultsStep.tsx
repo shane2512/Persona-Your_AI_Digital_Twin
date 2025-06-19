@@ -5,6 +5,8 @@ import axios from 'axios';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase } from '../../lib/supabase';
 
 interface ResultsStepProps {
   userData: UserData;
@@ -21,6 +23,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   const [pastAdvice, setPastAdvice] = useState<any[]>([]);
   const [mood, setMood] = useState<string>('');
   const [quote, setQuote] = useState(getRandomQuote());
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchAdvice = async () => {
@@ -44,20 +47,60 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
           
-          const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
-          const newReflection = {
-            id: Date.now(),
-            date: new Date().toISOString(),
-            userData,
-            advice: response.data.advice,
-            mood,
-            quote
-          };
+          // Save to Supabase if user is authenticated
+          if (user) {
+            try {
+              const { error: saveError } = await supabase
+                .from('reflections')
+                .insert({
+                  user_id: user.id,
+                  core_values: userData.coreValues,
+                  life_goals: userData.lifeGoals,
+                  current_struggles: userData.currentStruggles,
+                  ideal_self: userData.idealSelf,
+                  current_decision: userData.currentDecision,
+                  ai_advice: response.data.advice,
+                  mood,
+                  quote_text: quote.text,
+                  quote_author: quote.author
+                });
+
+              if (saveError) {
+                console.error('Error saving reflection:', saveError);
+              }
+            } catch (saveError) {
+              console.error('Error saving to Supabase:', saveError);
+            }
+          } else {
+            // Save to localStorage for non-authenticated users
+            const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
+            const newReflection = {
+              id: Date.now(),
+              date: new Date().toISOString(),
+              userData,
+              advice: response.data.advice,
+              mood,
+              quote
+            };
+            
+            localStorage.setItem('personaMirrorReflections', 
+              JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
+          }
           
-          localStorage.setItem('personaMirrorReflections', 
-            JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
-          
-          setPastAdvice(savedReflections);
+          // Load past reflections
+          if (user) {
+            const { data: reflections } = await supabase
+              .from('reflections')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
+            
+            setPastAdvice(reflections || []);
+          } else {
+            const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
+            setPastAdvice(savedReflections);
+          }
         } else {
           throw new Error('Invalid response format');
         }
@@ -75,7 +118,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     };
 
     fetchAdvice();
-  }, [userData, mood, quote]);
+  }, [userData, mood, quote, user]);
 
   const generateFallbackAdvice = (data: UserData): string => {
     const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision } = data;
@@ -282,7 +325,7 @@ Trust yourself - you have the wisdom to make the right choice.`;
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <p className="text-sm font-medium">
-                          {new Date(reflection.date).toLocaleDateString()}
+                          {new Date(reflection.created_at || reflection.date).toLocaleDateString()}
                         </p>
                         {reflection.mood && (
                           <p className="text-sm text-surface-500 dark:text-surface-400">
@@ -292,10 +335,10 @@ Trust yourself - you have the wisdom to make the right choice.`;
                       </div>
                     </div>
                     <div className="prose prose-sm dark:prose-invert">
-                      {reflection.advice.split('\n\n').slice(0, 2).map((paragraph, i) => (
+                      {(reflection.ai_advice || reflection.advice).split('\n\n').slice(0, 2).map((paragraph, i) => (
                         <p key={i} className="font-serif">{paragraph}</p>
                       ))}
-                      {reflection.advice.split('\n\n').length > 2 && (
+                      {(reflection.ai_advice || reflection.advice).split('\n\n').length > 2 && (
                         <p className="text-surface-500 dark:text-surface-400">...</p>
                       )}
                     </div>

@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@netlify/functions": "^2.8.2",
+    "@supabase/supabase-js": "^2.39.3",
     "axios": "^1.7.7",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.17",
