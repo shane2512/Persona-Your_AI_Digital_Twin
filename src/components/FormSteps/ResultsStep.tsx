@@ -28,7 +28,13 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        const response = await axios.post('/.netlify/functions/get-advice', userData, {
+        // Check if we're in development mode
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const apiUrl = isDev 
+          ? '/api/get-advice' // This will be proxied in development
+          : '/.netlify/functions/get-advice';
+        
+        const response = await axios.post(apiUrl, userData, {
           headers: {
             'Content-Type': 'application/json'
           },
@@ -57,7 +63,12 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         }
       } catch (err: any) {
         console.error('Error fetching advice:', err);
-        setError(err.response?.data?.error || err.message || 'Failed to generate advice. Please try again.');
+        
+        // Fallback advice if API fails
+        const fallbackAdvice = generateFallbackAdvice(userData);
+        setAdvice(fallbackAdvice);
+        
+        setError('Using offline reflection mode. For AI-powered insights, please try again later.');
       } finally {
         setLoading(false);
       }
@@ -65,6 +76,34 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
 
     fetchAdvice();
   }, [userData, mood, quote]);
+
+  const generateFallbackAdvice = (data: UserData): string => {
+    const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision } = data;
+    
+    return `Based on your reflection, here are some insights:
+
+**Your Core Values**: ${coreValues.join(', ')}
+These values are your compass. When making decisions, ask yourself: "Which option best aligns with these principles?"
+
+**Your Goals**: ${lifeGoals.join(', ')}
+Break these down into smaller, actionable steps. Focus on progress, not perfection.
+
+**Current Challenges**: ${currentStruggles.join(', ')}
+Remember that challenges are opportunities for growth. Consider how overcoming these obstacles will make you stronger.
+
+**Your Ideal Self**: 
+${idealSelf}
+
+This vision is powerful. Take one small action today that moves you closer to this version of yourself.
+
+**Decision Framework**:
+When facing your current decision about "${currentDecision}", consider:
+1. Which option aligns best with your core values?
+2. Which choice moves you closer to your ideal self?
+3. What would you regret not trying?
+
+Trust yourself - you have the wisdom to make the right choice.`;
+  };
 
   const copyToClipboard = async () => {
     if (!advice) return;
@@ -145,29 +184,31 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
             <p className="text-lg font-medium text-primary-600 dark:text-primary-400">Generating your personalized reflection...</p>
             <p className="text-sm text-surface-500 dark:text-surface-400 mt-2">This may take a moment as we analyze your inputs.</p>
           </div>
-        ) : error ? (
-          <div className="text-center text-error-600 dark:text-error-400 py-8">
-            <p className="text-lg font-medium">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 btn btn-outline text-error-600 dark:text-error-400 border-error-300 dark:border-error-700"
-            >
-              Try Again
-            </button>
-          </div>
         ) : (
           <div className="space-y-6">
+            {error && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+                <p className="text-amber-800 dark:text-amber-200 text-sm">{error}</p>
+              </div>
+            )}
+            
             <div className="prose prose-lg dark:prose-invert max-w-none">
               {advice?.split('\n\n').map((paragraph, i) => (
-                <motion.p
+                <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   className="font-serif"
                 >
-                  {paragraph}
-                </motion.p>
+                  {paragraph.startsWith('**') ? (
+                    <div className="font-bold text-lg mb-2 text-primary-600 dark:text-primary-400">
+                      {paragraph.replace(/\*\*/g, '')}
+                    </div>
+                  ) : (
+                    <p className="mb-4">{paragraph}</p>
+                  )}
+                </motion.div>
               ))}
             </div>
 
