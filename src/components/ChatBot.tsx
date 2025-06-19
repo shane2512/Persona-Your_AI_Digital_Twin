@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react'
+import { X, Send, Bot, User, Loader2, Sparkles, AlertCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import axios from 'axios'
+import { geminiAPI } from '../utils/apiClient'
 
 interface Message {
   id: string
   type: 'user' | 'bot'
   content: string
   timestamp: Date
+  isError?: boolean
 }
 
 interface ChatBotProps {
@@ -29,6 +30,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [userReflections, setUserReflections] = useState<any[]>([])
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'offline' | 'checking'>('checking')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
 
@@ -40,11 +42,26 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]')
       setUserReflections(savedReflections.slice(0, 3)) // Limit to recent 3
     }
+    
+    // Check API connection when chat opens
+    if (isOpen) {
+      checkAPIConnection()
+    }
   }, [isOpen, user])
 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  const checkAPIConnection = async () => {
+    setConnectionStatus('checking')
+    try {
+      const health = await geminiAPI.checkAPIHealth()
+      setConnectionStatus(health.healthy ? 'connected' : 'offline')
+    } catch (error) {
+      setConnectionStatus('offline')
+    }
+  }
 
   const fetchUserReflections = async () => {
     if (!user) return
@@ -86,37 +103,27 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     setIsLoading(true)
 
     try {
-      // Use the correct endpoint for chat functionality
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      const apiUrl = isDev 
-        ? '/api/chat'  // This will be proxied to /.netlify/functions/chat
-        : '/.netlify/functions/chat'
+      console.log('Sending message via geminiAPI...')
+      const response = await geminiAPI.sendChatMessage(
+        userMessage.content,
+        userReflections.slice(0, 3) // Send recent reflections for context
+      )
 
-      console.log('Sending chat request to:', apiUrl)
-
-      const response = await axios.post(apiUrl, {
-        message: userMessage.content,
-        userContext: userReflections.slice(0, 3) // Send recent reflections for context
-      }, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      })
-
-      console.log('Chat response received:', response.data)
-
-      if (response.data && response.data.response) {
+      if (response && response.response) {
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'bot',
-          content: response.data.response,
+          content: response.response,
           timestamp: new Date()
         }
         setMessages(prev => [...prev, botMessage])
+        setConnectionStatus('connected')
       } else {
         throw new Error('No response from AI')
       }
     } catch (error: any) {
       console.error('Error getting AI response:', error)
+      setConnectionStatus('offline')
       
       // Provide contextual fallback responses based on user input
       let fallbackContent = ""
@@ -141,15 +148,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       }
       
       // Add error context to fallback message
-      if (error.response?.status === 404) {
-        fallbackContent += "\n\n(Note: I'm currently running in offline mode, but I'm still here to help you reflect!)"
-      }
+      fallbackContent += "\n\n💡 I'm currently running in offline mode, but I'm still here to help you reflect!"
       
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
         content: fallbackContent,
-        timestamp: new Date()
+        timestamp: new Date(),
+        isError: true
       }
 
       setMessages(prev => [...prev, fallbackMessage])
@@ -162,6 +168,24 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
+    }
+  }
+
+  const getStatusColor = () => {
+    switch (connectionStatus) {
+      case 'connected': return 'text-green-400'
+      case 'offline': return 'text-red-400'
+      case 'checking': return 'text-yellow-400'
+      default: return 'text-gray-400'
+    }
+  }
+
+  const getStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected': return 'AI Connected'
+      case 'offline': return 'Offline Mode'
+      case 'checking': return 'Connecting...'
+      default: return 'Unknown'
     }
   }
 
@@ -183,9 +207,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                   <h3 className="font-semibold">AI Reflection Assistant</h3>
-                  <p className="text-xs opacity-90">
-                    {user ? 'Personalized guidance based on your reflections' : 'Here to help you reflect and grow'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400' : connectionStatus === 'offline' ? 'bg-red-400' : 'bg-yellow-400'} ${connectionStatus === 'checking' ? 'animate-pulse' : ''}`}></div>
+                    <p className="text-xs opacity-90">{getStatusText()}</p>
+                  </div>
                 </div>
               </div>
               <button
@@ -205,6 +230,24 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
               </div>
             )}
 
+            {/* Connection Status Banner */}
+            {connectionStatus === 'offline' && (
+              <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={14} className="text-red-600 dark:text-red-400" />
+                  <p className="text-xs text-red-800 dark:text-red-200">
+                    Running in offline mode - responses may be limited
+                  </p>
+                  <button
+                    onClick={checkAPIConnection}
+                    className="text-xs text-red-600 dark:text-red-400 underline hover:no-underline"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message) => (
@@ -213,8 +256,16 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.type === 'bot' && (
-                    <div className="w-8 h-8 rounded-full bg-calm-100 dark:bg-calm-900/30 flex items-center justify-center flex-shrink-0">
-                      <Bot size={16} className="text-calm-600 dark:text-calm-400" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      message.isError 
+                        ? 'bg-amber-100 dark:bg-amber-900/30' 
+                        : 'bg-calm-100 dark:bg-calm-900/30'
+                    }`}>
+                      {message.isError ? (
+                        <AlertCircle size={16} className="text-amber-600 dark:text-amber-400" />
+                      ) : (
+                        <Bot size={16} className="text-calm-600 dark:text-calm-400" />
+                      )}
                     </div>
                   )}
                   
@@ -222,12 +273,18 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                     className={`max-w-[80%] p-3 rounded-2xl ${
                       message.type === 'user'
                         ? 'bg-calm-500 text-white rounded-br-md'
-                        : 'bg-surface-100 dark:bg-surface-700 text-surface-900 dark:text-surface-100 rounded-bl-md'
+                        : message.isError
+                          ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 rounded-bl-md border border-amber-200 dark:border-amber-800'
+                          : 'bg-surface-100 dark:bg-surface-700 text-surface-900 dark:text-surface-100 rounded-bl-md'
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     <p className={`text-xs mt-1 opacity-70 ${
-                      message.type === 'user' ? 'text-white' : 'text-surface-500 dark:text-surface-400'
+                      message.type === 'user' 
+                        ? 'text-white' 
+                        : message.isError
+                          ? 'text-amber-700 dark:text-amber-300'
+                          : 'text-surface-500 dark:text-surface-400'
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>

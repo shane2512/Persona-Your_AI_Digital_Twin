@@ -29,15 +29,33 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     proxy: {
+      // Proxy for reflection generation
       '/api/get-advice': {
         target: 'http://localhost:8888',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/get-advice/, '/.netlify/functions/get-advice')
+        rewrite: (path) => path.replace(/^\/api\/get-advice/, '/.netlify/functions/get-advice'),
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Proxy error for /api/get-advice:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Proxying request:', req.method, req.url, '→', proxyReq.path);
+          });
+        }
       },
+      // Proxy for chat functionality
       '/api/chat': {
         target: 'http://localhost:8888',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/chat/, '/.netlify/functions/chat')
+        rewrite: (path) => path.replace(/^\/api\/chat/, '/.netlify/functions/chat'),
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Proxy error for /api/chat:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Proxying chat request:', req.method, req.url, '→', proxyReq.path);
+          });
+        }
       }
     }
   },

@@ -13,6 +13,9 @@ const corsHeaders = {
 };
 
 const handler: Handler = async (event) => {
+  console.log('chat function called with method:', event.httpMethod);
+  console.log('Request body:', event.body);
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -32,6 +35,8 @@ const handler: Handler = async (event) => {
 
   try {
     const { message, userContext } = JSON.parse(event.body || '{}');
+
+    console.log('Parsed chat data:', { message, userContext });
 
     if (!message) {
       return {
@@ -74,6 +79,8 @@ Provide a thoughtful, empathetic response that:
 
 Respond as if you're having a caring conversation with someone who trusts you with their personal growth journey.`;
 
+    console.log('Generated chat prompt:', fullPrompt);
+
     const model = genAI.getGenerativeModel({ 
       model: process.env.MODEL_NAME || "gemini-2.0-flash",
       generationConfig: {
@@ -84,9 +91,12 @@ Respond as if you're having a caring conversation with someone who trusts you wi
       }
     });
     
+    console.log('Calling Gemini API for chat...');
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;
     const text = response.text();
+    
+    console.log('Gemini chat response received:', text);
     
     if (!text || text.trim().length === 0) {
       throw new Error('Empty response from Gemini API');

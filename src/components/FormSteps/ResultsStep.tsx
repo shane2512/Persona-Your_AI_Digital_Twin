@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote } from 'lucide-react';
-import axios from 'axios';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import { geminiAPI } from '../../utils/apiClient';
 
 interface ResultsStepProps {
   userData: UserData;
@@ -31,27 +31,12 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        // Determine API endpoint
-        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const apiUrl = isDev 
-          ? '/api/get-advice'
-          : '/.netlify/functions/get-advice';
+        console.log('Generating reflection for user data:', userData);
         
-        const response = await axios.post(apiUrl, {
-          coreValues: userData.coreValues,
-          lifeGoals: userData.lifeGoals,
-          currentStruggles: userData.currentStruggles,
-          idealSelf: userData.idealSelf,
-          currentDecision: userData.currentDecision
-        }, {
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000 // 30 second timeout
-        });
+        const response = await geminiAPI.generateReflection(userData);
         
-        if (response.data && response.data.advice) {
-          setAdvice(response.data.advice);
+        if (response && response.advice) {
+          setAdvice(response.advice);
           
           // Save to Supabase if user is authenticated and Supabase is configured
           if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
@@ -65,7 +50,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
                   current_struggles: userData.currentStruggles,
                   ideal_self: userData.idealSelf,
                   current_decision: userData.currentDecision,
-                  ai_advice: response.data.advice,
+                  ai_advice: response.advice,
                   mood,
                   quote_text: quote.text,
                   quote_author: quote.author
@@ -74,16 +59,16 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
               if (saveError) {
                 console.error('Error saving reflection:', saveError);
                 // Fall back to localStorage if Supabase fails
-                saveToLocalStorage(response.data.advice);
+                saveToLocalStorage(response.advice);
               }
             } catch (saveError) {
               console.error('Error saving to Supabase:', saveError);
               // Fall back to localStorage if Supabase fails
-              saveToLocalStorage(response.data.advice);
+              saveToLocalStorage(response.advice);
             }
           } else {
             // Save to localStorage for non-authenticated users or when Supabase is not configured
-            saveToLocalStorage(response.data.advice);
+            saveToLocalStorage(response.advice);
           }
           
           // Load past reflections
@@ -99,12 +84,12 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setAdvice(fallbackAdvice);
         
         let errorMsg = 'Using offline reflection mode. ';
-        if (err.response?.status === 401) {
+        if (err.message?.includes('401') || err.message?.includes('API Error (401)')) {
           errorMsg += 'API authentication issue. ';
-        } else if (err.response?.status === 429) {
+        } else if (err.message?.includes('429') || err.message?.includes('rate limit')) {
           errorMsg += 'API rate limit reached. ';
-        } else if (err.code === 'ECONNABORTED') {
-          errorMsg += 'Request timeout. ';
+        } else if (err.message?.includes('timeout') || err.message?.includes('Network error')) {
+          errorMsg += 'Connection timeout. ';
         }
         errorMsg += 'For AI-powered insights, please try again later.';
         

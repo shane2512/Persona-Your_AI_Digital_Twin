@@ -13,6 +13,9 @@ const corsHeaders = {
 };
 
 const handler: Handler = async (event) => {
+  console.log('get-advice function called with method:', event.httpMethod);
+  console.log('Request body:', event.body);
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -32,25 +35,29 @@ const handler: Handler = async (event) => {
 
   try {
     const requestBody = JSON.parse(event.body || '{}');
-    const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision, chatMessage } = requestBody;
+    const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision } = requestBody;
+
+    console.log('Parsed request data:', { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision });
 
     // Validate required fields for reflection generation
-    if (!chatMessage && (!coreValues || !lifeGoals || !currentStruggles || !idealSelf || !currentDecision)) {
+    if (!coreValues || !lifeGoals || !currentStruggles || !idealSelf || !currentDecision) {
+      console.error('Missing required fields:', { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision });
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Missing required fields for reflection generation' })
+        body: JSON.stringify({ 
+          error: 'Missing required fields for reflection generation',
+          received: { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision }
+        })
       };
     }
 
-    let prompt = '';
+    // Validate API key
+    if (!apiKey || apiKey === 'your_api_key_here') {
+      throw new Error('Gemini API key not configured properly');
+    }
 
-    if (chatMessage) {
-      // This is a chat request
-      prompt = chatMessage;
-    } else {
-      // This is a reflection generation request
-      prompt = `As a concise AI advisor, analyze these inputs and provide clear, actionable advice:
+    const prompt = `As a concise AI advisor, analyze these inputs and provide clear, actionable advice:
 
 Core Values: ${Array.isArray(coreValues) ? coreValues.join(', ') : coreValues}
 Life Goals: ${Array.isArray(lifeGoals) ? lifeGoals.join(', ') : lifeGoals}
@@ -64,12 +71,8 @@ Provide a focused response with:
 3. Decision framework based on values (2-3 sentences)
 
 Keep the total response under 400 words and use clear formatting.`;
-    }
 
-    // Validate API key
-    if (!apiKey || apiKey === 'your_api_key_here') {
-      throw new Error('Gemini API key not configured properly');
-    }
+    console.log('Generated prompt:', prompt);
 
     const model = genAI.getGenerativeModel({ 
       model: process.env.MODEL_NAME || "gemini-2.0-flash",
@@ -81,9 +84,12 @@ Keep the total response under 400 words and use clear formatting.`;
       }
     });
     
+    console.log('Calling Gemini API...');
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+    
+    console.log('Gemini API response received:', text);
     
     if (!text || text.trim().length === 0) {
       throw new Error('Empty response from Gemini API');
@@ -94,6 +100,8 @@ Keep the total response under 400 words and use clear formatting.`;
       .map(p => p.trim())
       .filter(p => p.length > 0)
       .join('\n\n');
+    
+    console.log('Formatted response:', formattedText);
     
     return {
       statusCode: 200,
