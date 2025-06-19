@@ -86,11 +86,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     setIsLoading(true)
 
     try {
-      // Determine API endpoint
+      // Use the correct endpoint for chat functionality
       const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       const apiUrl = isDev 
-        ? '/api/chat'
+        ? '/api/chat'  // This will be proxied to /.netlify/functions/chat
         : '/.netlify/functions/chat'
+
+      console.log('Sending chat request to:', apiUrl)
 
       const response = await axios.post(apiUrl, {
         message: userMessage.content,
@@ -99,6 +101,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         headers: { 'Content-Type': 'application/json' },
         timeout: 30000
       })
+
+      console.log('Chat response received:', response.data)
 
       if (response.data && response.data.response) {
         const botMessage: Message = {
@@ -111,7 +115,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       } else {
         throw new Error('No response from AI')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error getting AI response:', error)
       
       // Provide contextual fallback responses based on user input
@@ -134,6 +138,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         fallbackContent = "Relationships are such an important part of our lives. What's happening in your relationships that you'd like to explore? Sometimes understanding our own needs helps us connect better with others."
       } else {
         fallbackContent = "I'm here to help you reflect and explore your thoughts. What's been on your mind lately? Whether it's about your goals, values, or current challenges, I'm here to listen and offer perspective."
+      }
+      
+      // Add error context to fallback message
+      if (error.response?.status === 404) {
+        fallbackContent += "\n\n(Note: I'm currently running in offline mode, but I'm still here to help you reflect!)"
       }
       
       const fallbackMessage: Message = {

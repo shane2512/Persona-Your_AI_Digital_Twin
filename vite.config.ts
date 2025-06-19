@@ -29,10 +29,15 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     proxy: {
-      '/api': {
+      '/api/get-advice': {
         target: 'http://localhost:8888',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/.netlify/functions')
+        rewrite: (path) => path.replace(/^\/api\/get-advice/, '/.netlify/functions/get-advice')
+      },
+      '/api/chat': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/chat/, '/.netlify/functions/chat')
       }
     }
   },
