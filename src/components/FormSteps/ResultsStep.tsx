@@ -31,13 +31,19 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        // Check if we're in development mode
+        // Determine API endpoint
         const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const apiUrl = isDev 
-          ? '/api/get-advice' // This will be proxied in development
+          ? '/api/get-advice'
           : '/.netlify/functions/get-advice';
         
-        const response = await axios.post(apiUrl, userData, {
+        const response = await axios.post(apiUrl, {
+          coreValues: userData.coreValues,
+          lifeGoals: userData.lifeGoals,
+          currentStruggles: userData.currentStruggles,
+          idealSelf: userData.idealSelf,
+          currentDecision: userData.currentDecision
+        }, {
           headers: {
             'Content-Type': 'application/json'
           },
@@ -92,7 +98,17 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         const fallbackAdvice = generateFallbackAdvice(userData);
         setAdvice(fallbackAdvice);
         
-        setError('Using offline reflection mode. For AI-powered insights, please try again later.');
+        let errorMsg = 'Using offline reflection mode. ';
+        if (err.response?.status === 401) {
+          errorMsg += 'API authentication issue. ';
+        } else if (err.response?.status === 429) {
+          errorMsg += 'API rate limit reached. ';
+        } else if (err.code === 'ECONNABORTED') {
+          errorMsg += 'Request timeout. ';
+        }
+        errorMsg += 'For AI-powered insights, please try again later.';
+        
+        setError(errorMsg);
         
         // Save fallback advice
         if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {

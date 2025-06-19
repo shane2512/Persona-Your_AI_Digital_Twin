@@ -61,54 +61,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       setUserReflections(data || [])
     } catch (error) {
       console.error('Error fetching reflections:', error)
+      // Fall back to localStorage if Supabase fails
+      const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]')
+      setUserReflections(savedReflections.slice(0, 3))
     }
   }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  const generateChatPrompt = (userMessage: string) => {
-    const hasReflections = userReflections.length > 0
-    
-    if (hasReflections) {
-      const reflectionContext = userReflections.map(r => {
-        // Handle both Supabase format and localStorage format
-        const coreValues = r.core_values || r.userData?.coreValues || []
-        const lifeGoals = r.life_goals || r.userData?.lifeGoals || []
-        const struggles = r.current_struggles || r.userData?.currentStruggles || []
-        const idealSelf = r.ideal_self || r.userData?.idealSelf || ''
-        const decision = r.current_decision || r.userData?.currentDecision || ''
-        
-        return `
-        - Core Values: ${Array.isArray(coreValues) ? coreValues.join(', ') : 'None'}
-        - Life Goals: ${Array.isArray(lifeGoals) ? lifeGoals.join(', ') : 'None'}
-        - Current Struggles: ${Array.isArray(struggles) ? struggles.join(', ') : 'None'}
-        - Ideal Self: ${idealSelf || 'Not specified'}
-        - Recent Decision: ${decision || 'None'}
-        `
-      }).join('\n')
-
-      return `You are a wise, empathetic AI reflection assistant. Based on the user's personal reflections:
-        ${reflectionContext}
-        
-        User's message: "${userMessage}"
-        
-        Provide a thoughtful, personalized response that:
-        1. Acknowledges their personal context and reflections
-        2. Offers practical, actionable advice
-        3. Encourages self-reflection and growth
-        4. Maintains a supportive, empathetic tone
-        5. Keeps the response conversational and under 150 words
-        
-        Respond as if you're having a caring conversation with a friend who trusts you with their personal growth journey.`
-    } else {
-      return `You are a wise, empathetic AI reflection assistant. The user hasn't completed any reflections yet.
-        
-        User's message: "${userMessage}"
-        
-        Provide a thoughtful response focused on personal development and self-reflection. Encourage them to explore their values, goals, and personal journey. Keep it conversational, supportive, and under 150 words. Ask thoughtful questions to help them reflect.`
-    }
   }
 
   const sendMessage = async () => {
@@ -126,35 +86,25 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     setIsLoading(true)
 
     try {
-      // Check if we have a valid Gemini API key
-      if (!import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY === 'your_api_key_here') {
-        throw new Error('Gemini API key not configured')
-      }
-
-      const prompt = generateChatPrompt(userMessage.content)
-      
+      // Determine API endpoint
       const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       const apiUrl = isDev 
-        ? '/api/get-advice'
-        : '/.netlify/functions/get-advice'
+        ? '/api/chat'
+        : '/.netlify/functions/chat'
 
-      // Use the chat prompt as the idealSelf field to get AI response
       const response = await axios.post(apiUrl, {
-        coreValues: ['Personal Growth', 'Self-Reflection'],
-        lifeGoals: ['Meaningful Conversations', 'Personal Development'],
-        currentStruggles: ['Seeking Guidance'],
-        idealSelf: prompt,
-        currentDecision: 'Having a meaningful conversation with AI assistant'
+        message: userMessage.content,
+        userContext: userReflections.slice(0, 3) // Send recent reflections for context
       }, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 30000
       })
 
-      if (response.data && response.data.advice) {
+      if (response.data && response.data.response) {
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'bot',
-          content: response.data.advice,
+          content: response.data.response,
           timestamp: new Date()
         }
         setMessages(prev => [...prev, botMessage])
@@ -164,17 +114,24 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     } catch (error) {
       console.error('Error getting AI response:', error)
       
-      // Provide contextual fallback responses
+      // Provide contextual fallback responses based on user input
       let fallbackContent = ""
+      const userInput = userMessage.content.toLowerCase()
       
-      if (userMessage.content.toLowerCase().includes('value')) {
+      if (userInput.includes('value')) {
         fallbackContent = "Values are the compass that guides our decisions. What principles matter most to you in life? Understanding your core values can help you make choices that feel authentic and fulfilling."
-      } else if (userMessage.content.toLowerCase().includes('goal')) {
+      } else if (userInput.includes('goal')) {
         fallbackContent = "Goals give us direction and purpose. What dreams are you working toward? Sometimes breaking big goals into smaller, actionable steps makes them feel more achievable."
-      } else if (userMessage.content.toLowerCase().includes('struggle') || userMessage.content.toLowerCase().includes('difficult')) {
+      } else if (userInput.includes('struggle') || userInput.includes('difficult') || userInput.includes('problem')) {
         fallbackContent = "Struggles are part of growth. What challenges are you facing right now? Remember, every obstacle is an opportunity to learn something new about yourself."
-      } else if (userMessage.content.toLowerCase().includes('decision')) {
+      } else if (userInput.includes('decision') || userInput.includes('choose') || userInput.includes('choice')) {
         fallbackContent = "Decisions can feel overwhelming. What choice are you trying to make? Sometimes it helps to consider which option aligns best with your values and long-term goals."
+      } else if (userInput.includes('stress') || userInput.includes('anxious') || userInput.includes('worried')) {
+        fallbackContent = "It's natural to feel stressed sometimes. What's weighing on your mind? Taking a step back and focusing on what you can control often helps bring clarity."
+      } else if (userInput.includes('future') || userInput.includes('plan')) {
+        fallbackContent = "Planning for the future shows great self-awareness. What vision do you have for yourself? Remember, the future is built through the choices we make today."
+      } else if (userInput.includes('relationship') || userInput.includes('friend') || userInput.includes('family')) {
+        fallbackContent = "Relationships are such an important part of our lives. What's happening in your relationships that you'd like to explore? Sometimes understanding our own needs helps us connect better with others."
       } else {
         fallbackContent = "I'm here to help you reflect and explore your thoughts. What's been on your mind lately? Whether it's about your goals, values, or current challenges, I'm here to listen and offer perspective."
       }
