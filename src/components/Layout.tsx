@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Moon, Sun, Sparkles, LogIn, UserPlus } from 'lucide-react';
+import { Moon, Sun, Sparkles, LogIn, UserPlus, MessageCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
@@ -41,6 +41,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const openAuthModal = (mode: 'signin' | 'signup') => {
     setAuthMode(mode);
     setAuthModalOpen(true);
+  };
+
+  const handleChatOpen = () => {
+    if (!user) {
+      // If user is not authenticated, open sign-in modal first
+      openAuthModal('signin');
+    } else {
+      setChatBotOpen(true);
+    }
   };
 
   return (
@@ -130,6 +139,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </div>
       </main>
+      
+      {/* Floating Chat Button */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 1, duration: 0.3 }}
+        onClick={handleChatOpen}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-calm-500 to-calm-400 dark:from-calm-400 dark:to-calm-300 text-white rounded-full shadow-lg shadow-calm-400/30 dark:shadow-calm-500/40 hover:shadow-xl hover:shadow-calm-400/40 dark:hover:shadow-calm-500/50 hover:scale-110 transition-all duration-300 z-40 flex items-center justify-center group"
+        aria-label="Open AI Chat Assistant"
+      >
+        <MessageCircle size={24} className="group-hover:scale-110 transition-transform duration-200" />
+        
+        {/* Pulse animation */}
+        <div className="absolute inset-0 rounded-full bg-calm-400 dark:bg-calm-300 animate-ping opacity-20"></div>
+        
+        {/* Tooltip */}
+        <div className="absolute right-full mr-3 px-3 py-2 bg-surface-900 dark:bg-surface-100 text-white dark:text-surface-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+          {user ? 'Chat with AI Assistant' : 'Sign in to chat with AI'}
+          <div className="absolute top-1/2 -right-1 transform -translate-y-1/2 w-2 h-2 bg-surface-900 dark:bg-surface-100 rotate-45"></div>
+        </div>
+      </motion.button>
       
       <footer className="relative py-10 px-4 bg-white/80 dark:bg-surface-800/80 backdrop-blur-md border-t border-calm-100/50 dark:border-calm-800/50">
         <div className="absolute inset-0 bg-gradient-to-r from-calm-50/50 via-transparent to-calm-50/50 dark:from-calm-900/20 dark:to-calm-900/20" />

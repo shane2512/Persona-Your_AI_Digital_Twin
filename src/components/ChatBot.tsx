@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send, Bot, User, Loader2 } from 'lucide-react'
+import { X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import axios from 'axios'
@@ -35,6 +35,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen && user) {
       fetchUserReflections()
+    } else if (isOpen && !user) {
+      // For non-authenticated users, load from localStorage
+      const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]')
+      setUserReflections(savedReflections.slice(0, 3)) // Limit to recent 3
     }
   }, [isOpen, user])
 
@@ -65,15 +69,28 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   }
 
   const generateContextualPrompt = (userMessage: string) => {
-    const reflectionContext = userReflections.length > 0 
-      ? `Based on the user's recent reflections:
-        ${userReflections.map(r => `
-        - Core Values: ${r.core_values?.join(', ') || 'None'}
-        - Life Goals: ${r.life_goals?.join(', ') || 'None'}
-        - Current Struggles: ${r.current_struggles?.join(', ') || 'None'}
-        - Ideal Self: ${r.ideal_self || 'Not specified'}
-        - Recent Decision: ${r.current_decision || 'None'}
-        `).join('\n')}
+    const hasReflections = userReflections.length > 0
+    
+    if (hasReflections) {
+      const reflectionContext = userReflections.map(r => {
+        // Handle both Supabase format and localStorage format
+        const coreValues = r.core_values || r.userData?.coreValues || []
+        const lifeGoals = r.life_goals || r.userData?.lifeGoals || []
+        const struggles = r.current_struggles || r.userData?.currentStruggles || []
+        const idealSelf = r.ideal_self || r.userData?.idealSelf || ''
+        const decision = r.current_decision || r.userData?.currentDecision || ''
+        
+        return `
+        - Core Values: ${Array.isArray(coreValues) ? coreValues.join(', ') : 'None'}
+        - Life Goals: ${Array.isArray(lifeGoals) ? lifeGoals.join(', ') : 'None'}
+        - Current Struggles: ${Array.isArray(struggles) ? struggles.join(', ') : 'None'}
+        - Ideal Self: ${idealSelf || 'Not specified'}
+        - Recent Decision: ${decision || 'None'}
+        `
+      }).join('\n')
+
+      return `Based on the user's recent reflections:
+        ${reflectionContext}
         
         User's question: ${userMessage}
         
@@ -85,11 +102,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         5. Keeps the response concise (under 200 words)
         
         If the user is asking about something unrelated to personal development, gently guide them back to reflection and self-improvement topics.`
-      : `User's question: ${userMessage}
+    } else {
+      return `User's question: ${userMessage}
         
-        Please provide a thoughtful response focused on personal development, self-reflection, and growth. Keep it concise (under 200 words) and encourage the user to reflect on their values, goals, and personal journey.`
-
-    return reflectionContext
+        This user hasn't completed any reflections yet. Please provide a thoughtful response focused on personal development, self-reflection, and growth. Encourage them to explore their values, goals, and personal journey. Keep it concise (under 200 words) and welcoming.`
+    }
   }
 
   const sendMessage = async () => {
@@ -170,11 +187,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
             <div className="p-4 bg-gradient-to-r from-calm-500 to-calm-400 dark:from-calm-600 dark:to-calm-500 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <Bot size={18} />
+                  <Sparkles size={18} />
                 </div>
                 <div>
                   <h3 className="font-semibold">AI Reflection Assistant</h3>
-                  <p className="text-xs opacity-90">Here to help you reflect and grow</p>
+                  <p className="text-xs opacity-90">
+                    {user ? 'Personalized guidance based on your reflections' : 'Here to help you reflect and grow'}
+                  </p>
                 </div>
               </div>
               <button
@@ -184,6 +203,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                 <X size={18} />
               </button>
             </div>
+
+            {/* Context Banner for Non-Authenticated Users */}
+            {!user && (
+              <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  💡 Sign in to get personalized responses based on your reflections
+                </p>
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
