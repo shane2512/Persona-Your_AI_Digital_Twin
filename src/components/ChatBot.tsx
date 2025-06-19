@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send, Bot, User, Loader2, Sparkles, AlertCircle } from 'lucide-react'
+import { X, Send, Bot, User, Loader2, Sparkles, AlertCircle, Wifi, WifiOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { geminiAPI } from '../utils/apiClient'
@@ -11,6 +11,7 @@ interface Message {
   content: string
   timestamp: Date
   isError?: boolean
+  isFallback?: boolean
 }
 
 interface ChatBotProps {
@@ -30,7 +31,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [userReflections, setUserReflections] = useState<any[]>([])
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'offline' | 'checking'>('checking')
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'offline' | 'checking' | 'fallback'>('checking')
+  const [connectionMethod, setConnectionMethod] = useState<string>('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
 
@@ -57,9 +59,18 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     setConnectionStatus('checking')
     try {
       const health = await geminiAPI.checkAPIHealth()
-      setConnectionStatus(health.healthy ? 'connected' : 'offline')
+      if (health.healthy) {
+        setConnectionStatus('connected')
+        setConnectionMethod(health.method || 'unknown')
+        console.log(`API connected via ${health.method}`)
+      } else {
+        setConnectionStatus('offline')
+        setConnectionMethod('')
+      }
     } catch (error) {
+      console.error('Health check error:', error)
       setConnectionStatus('offline')
+      setConnectionMethod('')
     }
   }
 
@@ -114,10 +125,17 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
           id: (Date.now() + 1).toString(),
           type: 'bot',
           content: response.response,
-          timestamp: new Date()
+          timestamp: new Date(),
+          isFallback: response.fallback || false
         }
         setMessages(prev => [...prev, botMessage])
-        setConnectionStatus('connected')
+        
+        // Update connection status based on response
+        if (response.fallback) {
+          setConnectionStatus('fallback')
+        } else {
+          setConnectionStatus('connected')
+        }
       } else {
         throw new Error('No response from AI')
       }
@@ -174,18 +192,30 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   const getStatusColor = () => {
     switch (connectionStatus) {
       case 'connected': return 'text-green-400'
+      case 'fallback': return 'text-yellow-400'
       case 'offline': return 'text-red-400'
-      case 'checking': return 'text-yellow-400'
+      case 'checking': return 'text-blue-400'
       default: return 'text-gray-400'
     }
   }
 
   const getStatusText = () => {
     switch (connectionStatus) {
-      case 'connected': return 'AI Connected'
+      case 'connected': return connectionMethod ? `AI Connected (${connectionMethod})` : 'AI Connected'
+      case 'fallback': return 'Fallback Mode'
       case 'offline': return 'Offline Mode'
       case 'checking': return 'Connecting...'
       default: return 'Unknown'
+    }
+  }
+
+  const getStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'connected': return <Wifi size={12} className="text-green-400" />
+      case 'fallback': return <Wifi size={12} className="text-yellow-400" />
+      case 'offline': return <WifiOff size={12} className="text-red-400" />
+      case 'checking': return <Loader2 size={12} className="text-blue-400 animate-spin" />
+      default: return <AlertCircle size={12} className="text-gray-400" />
     }
   }
 
@@ -208,7 +238,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                 <div>
                   <h3 className="font-semibold">AI Reflection Assistant</h3>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400' : connectionStatus === 'offline' ? 'bg-red-400' : 'bg-yellow-400'} ${connectionStatus === 'checking' ? 'animate-pulse' : ''}`}></div>
+                    {getStatusIcon()}
                     <p className="text-xs opacity-90">{getStatusText()}</p>
                   </div>
                 </div>
@@ -231,16 +261,27 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
             )}
 
             {/* Connection Status Banner */}
-            {connectionStatus === 'offline' && (
-              <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+            {(connectionStatus === 'offline' || connectionStatus === 'fallback') && (
+              <div className={`px-4 py-2 border-b ${
+                connectionStatus === 'offline' 
+                  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                  : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+              }`}>
                 <div className="flex items-center gap-2">
-                  <AlertCircle size={14} className="text-red-600 dark:text-red-400" />
-                  <p className="text-xs text-red-800 dark:text-red-200">
-                    Running in offline mode - responses may be limited
+                  <AlertCircle size={14} className={connectionStatus === 'offline' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'} />
+                  <p className={`text-xs ${connectionStatus === 'offline' ? 'text-red-800 dark:text-red-200' : 'text-yellow-800 dark:text-yellow-200'}`}>
+                    {connectionStatus === 'offline' 
+                      ? 'Running in offline mode - responses may be limited'
+                      : 'Using fallback responses - some features may be limited'
+                    }
                   </p>
                   <button
                     onClick={checkAPIConnection}
-                    className="text-xs text-red-600 dark:text-red-400 underline hover:no-underline"
+                    className={`text-xs underline hover:no-underline ${
+                      connectionStatus === 'offline' 
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-yellow-600 dark:text-yellow-400'
+                    }`}
                   >
                     Retry
                   </button>
@@ -259,10 +300,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       message.isError 
                         ? 'bg-amber-100 dark:bg-amber-900/30' 
-                        : 'bg-calm-100 dark:bg-calm-900/30'
+                        : message.isFallback
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30'
+                          : 'bg-calm-100 dark:bg-calm-900/30'
                     }`}>
                       {message.isError ? (
                         <AlertCircle size={16} className="text-amber-600 dark:text-amber-400" />
+                      ) : message.isFallback ? (
+                        <Wifi size={16} className="text-yellow-600 dark:text-yellow-400" />
                       ) : (
                         <Bot size={16} className="text-calm-600 dark:text-calm-400" />
                       )}
@@ -275,7 +320,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                         ? 'bg-calm-500 text-white rounded-br-md'
                         : message.isError
                           ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 rounded-bl-md border border-amber-200 dark:border-amber-800'
-                          : 'bg-surface-100 dark:bg-surface-700 text-surface-900 dark:text-surface-100 rounded-bl-md'
+                          : message.isFallback
+                            ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-100 rounded-bl-md border border-yellow-200 dark:border-yellow-800'
+                            : 'bg-surface-100 dark:bg-surface-700 text-surface-900 dark:text-surface-100 rounded-bl-md'
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -284,9 +331,12 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                         ? 'text-white' 
                         : message.isError
                           ? 'text-amber-700 dark:text-amber-300'
-                          : 'text-surface-500 dark:text-surface-400'
+                          : message.isFallback
+                            ? 'text-yellow-700 dark:text-yellow-300'
+                            : 'text-surface-500 dark:text-surface-400'
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {message.isFallback && ' • Fallback'}
                     </p>
                   </div>
 

@@ -29,31 +29,59 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     proxy: {
-      // Proxy for reflection generation
+      // Proxy for reflection generation - handle both Bolt and local dev
       '/api/get-advice': {
-        target: 'http://localhost:8888',
+        target: process.env.NODE_ENV === 'development' && process.env.NETLIFY_DEV 
+          ? 'http://localhost:8888' 
+          : 'https://persona-mirror-ai.netlify.app',
         changeOrigin: true,
+        secure: true,
         rewrite: (path) => path.replace(/^\/api\/get-advice/, '/.netlify/functions/get-advice'),
         configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('Proxy error for /api/get-advice:', err);
+          proxy.on('error', (err, req, res) => {
+            console.log('Proxy error for /api/get-advice:', err.message);
+            // Send a fallback response instead of letting the proxy fail
+            if (res && !res.headersSent) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                error: 'Service temporarily unavailable',
+                fallback: true 
+              }));
+            }
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Proxying request:', req.method, req.url, '→', proxyReq.path);
+            console.log('Proxying reflection request:', req.method, req.url, '→', proxyReq.path);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Reflection proxy response:', proxyRes.statusCode, 'for', req.url);
           });
         }
       },
       // Proxy for chat functionality
       '/api/chat': {
-        target: 'http://localhost:8888',
+        target: process.env.NODE_ENV === 'development' && process.env.NETLIFY_DEV 
+          ? 'http://localhost:8888' 
+          : 'https://persona-mirror-ai.netlify.app',
         changeOrigin: true,
+        secure: true,
         rewrite: (path) => path.replace(/^\/api\/chat/, '/.netlify/functions/chat'),
         configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('Proxy error for /api/chat:', err);
+          proxy.on('error', (err, req, res) => {
+            console.log('Proxy error for /api/chat:', err.message);
+            // Send a fallback response instead of letting the proxy fail
+            if (res && !res.headersSent) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                response: "I'm currently having connection issues, but I'm here to help you reflect. What's on your mind?",
+                fallback: true 
+              }));
+            }
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             console.log('Proxying chat request:', req.method, req.url, '→', proxyReq.path);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Chat proxy response:', proxyRes.statusCode, 'for', req.url);
           });
         }
       }

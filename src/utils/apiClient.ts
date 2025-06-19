@@ -2,24 +2,24 @@ import axios from 'axios';
 
 // Create a centralized API client for Gemini requests
 class GeminiAPIClient {
-  private getBaseURL() {
-    // Determine if we're in development or production
-    const isDev = window.location.hostname === 'localhost' || 
-                  window.location.hostname === '127.0.0.1' ||
-                  window.location.hostname.includes('webcontainer');
-    
-    return isDev ? '' : ''; // Use relative URLs for both dev and prod
+  private isBoltEnvironment() {
+    return window.location.hostname.includes('webcontainer') || 
+           window.location.hostname.includes('bolt') ||
+           window.location.hostname.includes('stackblitz');
+  }
+
+  private isLocalDev() {
+    return window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1';
   }
 
   private getEndpoint(endpoint: string) {
-    const isDev = window.location.hostname === 'localhost' || 
-                  window.location.hostname === '127.0.0.1' ||
-                  window.location.hostname.includes('webcontainer');
-    
-    if (isDev) {
-      return `/api/${endpoint}`; // Will be proxied by Vite
+    // In Bolt or local dev, use the proxy
+    if (this.isBoltEnvironment() || this.isLocalDev()) {
+      return `/api/${endpoint}`; // Will be proxied by Vite to Netlify
     } else {
-      return `/.netlify/functions/${endpoint}`; // Direct Netlify function call
+      // In production (Netlify), use direct function calls
+      return `/.netlify/functions/${endpoint}`;
     }
   }
 
@@ -31,6 +31,13 @@ class GeminiAPIClient {
     currentDecision: string;
   }) {
     try {
+      console.log('Environment check:', {
+        hostname: window.location.hostname,
+        isBolt: this.isBoltEnvironment(),
+        isLocal: this.isLocalDev(),
+        endpoint: this.getEndpoint('get-advice')
+      });
+      
       console.log('Generating reflection with data:', userData);
       
       const response = await axios.post(
@@ -46,18 +53,54 @@ class GeminiAPIClient {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 30000 // 30 second timeout
+          timeout: 45000, // Increased timeout for Bolt environment
+          // Add retry logic for Bolt environment
+          validateStatus: (status) => {
+            return status < 500; // Accept 4xx errors but retry 5xx
+          }
         }
       );
 
       console.log('Reflection response:', response.data);
+      
+      // Handle fallback responses from proxy
+      if (response.data?.fallback) {
+        throw new Error('Service temporarily unavailable - using fallback');
+      }
+      
       return response.data;
     } catch (error: any) {
       console.error('Error generating reflection:', error);
       
-      // Enhanced error handling
+      // Enhanced error handling with Bolt-specific logic
       if (error.response) {
         console.error('Response error:', error.response.status, error.response.data);
+        
+        // If we're in Bolt and get a 503, try direct Netlify call as fallback
+        if (this.isBoltEnvironment() && error.response.status >= 500) {
+          console.log('Trying direct Netlify call as fallback...');
+          try {
+            const fallbackResponse = await axios.post(
+              'https://persona-mirror-ai.netlify.app/.netlify/functions/get-advice',
+              {
+                coreValues: userData.coreValues,
+                lifeGoals: userData.lifeGoals,
+                currentStruggles: userData.currentStruggles,
+                idealSelf: userData.idealSelf,
+                currentDecision: userData.currentDecision
+              },
+              {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 30000
+              }
+            );
+            console.log('Direct Netlify call successful:', fallbackResponse.data);
+            return fallbackResponse.data;
+          } catch (fallbackError) {
+            console.error('Direct Netlify call also failed:', fallbackError);
+          }
+        }
+        
         throw new Error(`API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
       } else if (error.request) {
         console.error('Request error:', error.request);
@@ -71,8 +114,14 @@ class GeminiAPIClient {
 
   async sendChatMessage(message: string, userContext?: any[]) {
     try {
+      console.log('Environment check for chat:', {
+        hostname: window.location.hostname,
+        isBolt: this.isBoltEnvironment(),
+        isLocal: this.isLocalDev(),
+        endpoint: this.getEndpoint('chat')
+      });
+      
       console.log('Sending chat message:', message);
-      console.log('Chat endpoint:', this.getEndpoint('chat'));
       
       const response = await axios.post(
         this.getEndpoint('chat'),
@@ -84,18 +133,50 @@ class GeminiAPIClient {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 30000 // 30 second timeout
+          timeout: 45000, // Increased timeout for Bolt environment
+          validateStatus: (status) => {
+            return status < 500; // Accept 4xx errors but retry 5xx
+          }
         }
       );
 
       console.log('Chat response:', response.data);
+      
+      // Handle fallback responses from proxy
+      if (response.data?.fallback) {
+        return response.data; // Return fallback response as-is
+      }
+      
       return response.data;
     } catch (error: any) {
       console.error('Error sending chat message:', error);
       
-      // Enhanced error handling
+      // Enhanced error handling with Bolt-specific logic
       if (error.response) {
         console.error('Chat response error:', error.response.status, error.response.data);
+        
+        // If we're in Bolt and get a 503, try direct Netlify call as fallback
+        if (this.isBoltEnvironment() && error.response.status >= 500) {
+          console.log('Trying direct Netlify call for chat as fallback...');
+          try {
+            const fallbackResponse = await axios.post(
+              'https://persona-mirror-ai.netlify.app/.netlify/functions/chat',
+              {
+                message,
+                userContext: userContext || []
+              },
+              {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 30000
+              }
+            );
+            console.log('Direct Netlify chat call successful:', fallbackResponse.data);
+            return fallbackResponse.data;
+          } catch (fallbackError) {
+            console.error('Direct Netlify chat call also failed:', fallbackError);
+          }
+        }
+        
         throw new Error(`Chat API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
       } else if (error.request) {
         console.error('Chat request error:', error.request);
@@ -110,9 +191,35 @@ class GeminiAPIClient {
   // Utility method to check API health
   async checkAPIHealth() {
     try {
-      const testResponse = await this.sendChatMessage('Hello');
-      return { healthy: true, response: testResponse };
+      console.log('Checking API health...');
+      
+      // For Bolt environment, try both proxy and direct
+      if (this.isBoltEnvironment()) {
+        try {
+          // Try proxy first
+          const testResponse = await axios.post(
+            this.getEndpoint('chat'),
+            { message: 'Health check' },
+            { timeout: 10000 }
+          );
+          return { healthy: true, method: 'proxy', response: testResponse.data };
+        } catch (proxyError) {
+          console.log('Proxy health check failed, trying direct...');
+          // Try direct as fallback
+          const directResponse = await axios.post(
+            'https://persona-mirror-ai.netlify.app/.netlify/functions/chat',
+            { message: 'Health check' },
+            { timeout: 10000 }
+          );
+          return { healthy: true, method: 'direct', response: directResponse.data };
+        }
+      } else {
+        // For production, use normal endpoint
+        const testResponse = await this.sendChatMessage('Health check');
+        return { healthy: true, method: 'normal', response: testResponse };
+      }
     } catch (error) {
+      console.error('API health check failed:', error);
       return { healthy: false, error: error.message };
     }
   }
