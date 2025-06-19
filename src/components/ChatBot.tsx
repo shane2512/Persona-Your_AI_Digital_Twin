@@ -68,7 +68,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const generateContextualPrompt = (userMessage: string) => {
+  const generateChatPrompt = (userMessage: string) => {
     const hasReflections = userReflections.length > 0
     
     if (hasReflections) {
@@ -89,23 +89,25 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         `
       }).join('\n')
 
-      return `Based on the user's recent reflections:
+      return `You are a wise, empathetic AI reflection assistant. Based on the user's personal reflections:
         ${reflectionContext}
         
-        User's question: ${userMessage}
+        User's message: "${userMessage}"
         
-        Please provide a thoughtful, personalized response that:
+        Provide a thoughtful, personalized response that:
         1. Acknowledges their personal context and reflections
         2. Offers practical, actionable advice
         3. Encourages self-reflection and growth
         4. Maintains a supportive, empathetic tone
-        5. Keeps the response concise (under 200 words)
+        5. Keeps the response conversational and under 150 words
         
-        If the user is asking about something unrelated to personal development, gently guide them back to reflection and self-improvement topics.`
+        Respond as if you're having a caring conversation with a friend who trusts you with their personal growth journey.`
     } else {
-      return `User's question: ${userMessage}
+      return `You are a wise, empathetic AI reflection assistant. The user hasn't completed any reflections yet.
         
-        This user hasn't completed any reflections yet. Please provide a thoughtful response focused on personal development, self-reflection, and growth. Encourage them to explore their values, goals, and personal journey. Keep it concise (under 200 words) and welcoming.`
+        User's message: "${userMessage}"
+        
+        Provide a thoughtful response focused on personal development and self-reflection. Encourage them to explore their values, goals, and personal journey. Keep it conversational, supportive, and under 150 words. Ask thoughtful questions to help them reflect.`
     }
   }
 
@@ -124,39 +126,63 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     setIsLoading(true)
 
     try {
-      const prompt = generateContextualPrompt(userMessage.content)
+      // Check if we have a valid Gemini API key
+      if (!import.meta.env.GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY === 'your_api_key_here') {
+        throw new Error('Gemini API key not configured')
+      }
+
+      const prompt = generateChatPrompt(userMessage.content)
       
       const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       const apiUrl = isDev 
         ? '/api/get-advice'
         : '/.netlify/functions/get-advice'
 
+      // Use the chat prompt as the idealSelf field to get AI response
       const response = await axios.post(apiUrl, {
-        coreValues: [],
-        lifeGoals: [],
-        currentStruggles: [],
+        coreValues: ['Personal Growth', 'Self-Reflection'],
+        lifeGoals: ['Meaningful Conversations', 'Personal Development'],
+        currentStruggles: ['Seeking Guidance'],
         idealSelf: prompt,
-        currentDecision: ''
+        currentDecision: 'Having a meaningful conversation with AI assistant'
       }, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 30000
       })
 
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: response.data.advice || "I'm here to help you reflect and grow. Could you tell me more about what's on your mind?",
-        timestamp: new Date()
+      if (response.data && response.data.advice) {
+        const botMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'bot',
+          content: response.data.advice,
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, botMessage])
+      } else {
+        throw new Error('No response from AI')
       }
-
-      setMessages(prev => [...prev, botMessage])
     } catch (error) {
       console.error('Error getting AI response:', error)
+      
+      // Provide contextual fallback responses
+      let fallbackContent = ""
+      
+      if (userMessage.content.toLowerCase().includes('value')) {
+        fallbackContent = "Values are the compass that guides our decisions. What principles matter most to you in life? Understanding your core values can help you make choices that feel authentic and fulfilling."
+      } else if (userMessage.content.toLowerCase().includes('goal')) {
+        fallbackContent = "Goals give us direction and purpose. What dreams are you working toward? Sometimes breaking big goals into smaller, actionable steps makes them feel more achievable."
+      } else if (userMessage.content.toLowerCase().includes('struggle') || userMessage.content.toLowerCase().includes('difficult')) {
+        fallbackContent = "Struggles are part of growth. What challenges are you facing right now? Remember, every obstacle is an opportunity to learn something new about yourself."
+      } else if (userMessage.content.toLowerCase().includes('decision')) {
+        fallbackContent = "Decisions can feel overwhelming. What choice are you trying to make? Sometimes it helps to consider which option aligns best with your values and long-term goals."
+      } else {
+        fallbackContent = "I'm here to help you reflect and explore your thoughts. What's been on your mind lately? Whether it's about your goals, values, or current challenges, I'm here to listen and offer perspective."
+      }
       
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: "I'm having trouble connecting right now, but I'm here to listen. What's been on your mind lately? Sometimes just talking through our thoughts can provide clarity.",
+        content: fallbackContent,
         timestamp: new Date()
       }
 

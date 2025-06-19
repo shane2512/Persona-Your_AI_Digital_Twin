@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import ChipInput from '../ChipInput';
 import ProgressButton from '../ProgressButton';
 import { UserData } from '../../types';
-import ValueVisualization from '../ValueVisualization';
 
 interface LifeGoalsStepProps {
   userData: UserData;
@@ -40,7 +39,25 @@ const LifeGoalsStep: React.FC<LifeGoalsStepProps> = ({
         </p>
       </div>
       
-      <ValueVisualization values={userData.coreValues} />
+      {/* Display Core Values as Simple Tags */}
+      {userData.coreValues.length > 0 && (
+        <div className="card mb-6">
+          <h3 className="text-lg font-semibold mb-4 text-primary-600 dark:text-primary-400">Your Core Values</h3>
+          <div className="flex flex-wrap gap-2">
+            {userData.coreValues.map((value, index) => (
+              <motion.span
+                key={value}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2, delay: index * 0.1 }}
+                className="chip"
+              >
+                {value}
+              </motion.span>
+            ))}
+          </div>
+        </div>
+      )}
       
       <div className="card">
         <ChipInput 
