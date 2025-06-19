@@ -4,6 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// Declare the supabase client variable
+let supabase: any
+
 // Validate environment variables and provide meaningful error handling
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_url' || supabaseAnonKey === 'your_supabase_anon_key') {
   console.error('Supabase environment variables are not configured properly. Please set up your .env file with valid Supabase credentials.')
@@ -27,17 +30,20 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your_supabase_project_u
     }),
   }
   
-  // Export the mock client to prevent runtime errors
-  export const supabase = mockClient as any
+  // Assign the mock client to the supabase variable
+  supabase = mockClient
 } else {
   // Create the actual Supabase client with valid credentials
-  export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
     },
   })
 }
+
+// Export the supabase client at the top level
+export { supabase }
 
 export type Database = {
   public: {
