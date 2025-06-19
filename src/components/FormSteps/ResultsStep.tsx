@@ -47,8 +47,8 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         if (response.data && response.data.advice) {
           setAdvice(response.data.advice);
           
-          // Save to Supabase if user is authenticated
-          if (user) {
+          // Save to Supabase if user is authenticated and Supabase is configured
+          if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
             try {
               const { error: saveError } = await supabase
                 .from('reflections')
@@ -67,40 +67,21 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
 
               if (saveError) {
                 console.error('Error saving reflection:', saveError);
+                // Fall back to localStorage if Supabase fails
+                saveToLocalStorage(response.data.advice);
               }
             } catch (saveError) {
               console.error('Error saving to Supabase:', saveError);
+              // Fall back to localStorage if Supabase fails
+              saveToLocalStorage(response.data.advice);
             }
           } else {
-            // Save to localStorage for non-authenticated users
-            const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
-            const newReflection = {
-              id: Date.now(),
-              date: new Date().toISOString(),
-              userData,
-              advice: response.data.advice,
-              mood,
-              quote
-            };
-            
-            localStorage.setItem('personaMirrorReflections', 
-              JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
+            // Save to localStorage for non-authenticated users or when Supabase is not configured
+            saveToLocalStorage(response.data.advice);
           }
           
           // Load past reflections
-          if (user) {
-            const { data: reflections } = await supabase
-              .from('reflections')
-              .select('*')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(10);
-            
-            setPastAdvice(reflections || []);
-          } else {
-            const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
-            setPastAdvice(savedReflections);
-          }
+          await loadPastReflections();
         } else {
           throw new Error('Invalid response format');
         }
@@ -112,8 +93,74 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setAdvice(fallbackAdvice);
         
         setError('Using offline reflection mode. For AI-powered insights, please try again later.');
+        
+        // Save fallback advice
+        if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+          try {
+            await supabase
+              .from('reflections')
+              .insert({
+                user_id: user.id,
+                core_values: userData.coreValues,
+                life_goals: userData.lifeGoals,
+                current_struggles: userData.currentStruggles,
+                ideal_self: userData.idealSelf,
+                current_decision: userData.currentDecision,
+                ai_advice: fallbackAdvice,
+                mood,
+                quote_text: quote.text,
+                quote_author: quote.author
+              });
+          } catch (saveError) {
+            console.error('Error saving fallback to Supabase:', saveError);
+            saveToLocalStorage(fallbackAdvice);
+          }
+        } else {
+          saveToLocalStorage(fallbackAdvice);
+        }
+        
+        await loadPastReflections();
       } finally {
         setLoading(false);
+      }
+    };
+
+    const saveToLocalStorage = (adviceText: string) => {
+      const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
+      const newReflection = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        userData,
+        advice: adviceText,
+        mood,
+        quote
+      };
+      
+      localStorage.setItem('personaMirrorReflections', 
+        JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
+    };
+
+    const loadPastReflections = async () => {
+      if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        try {
+          const { data: reflections, error } = await supabase
+            .from('reflections')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+          
+          if (error) throw error;
+          setPastAdvice(reflections || []);
+        } catch (error) {
+          console.error('Error loading reflections from Supabase:', error);
+          // Fall back to localStorage
+          const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
+          setPastAdvice(savedReflections);
+        }
+      } else {
+        const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
+        setPastAdvice(savedReflections);
       }
     };
 
