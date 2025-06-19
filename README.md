@@ -35,7 +35,7 @@ Create a `.env` file in your project root with the following variables:
 
 ```env
 # Google Gemini AI
-GEMINI_API_KEY=your_gemini_api_key
+VITE_GEMINI_API_KEY=your_gemini_api_key
 
 # Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
@@ -61,7 +61,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 1. Go to your Netlify site dashboard
 2. Navigate to Site settings → Environment variables
 3. Add the following variables:
-   - `GEMINI_API_KEY`: Your Google Gemini API key
+   - `VITE_GEMINI_API_KEY`: Your Google Gemini API key
    - `VITE_SUPABASE_URL`: Your Supabase project URL
    - `VITE_SUPABASE_ANON_KEY`: Your Supabase anon key
 

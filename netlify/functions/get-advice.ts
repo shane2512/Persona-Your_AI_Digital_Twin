@@ -1,7 +1,7 @@
 import { Handler } from '@netlify/functions';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyDdN9F95t_E7Zx4X6M8rMWaCvmbPOgRyuk');
+const genAI = new GoogleGenerativeAI(process.env.VITE_GEMINI_API_KEY || 'AIzaSyDdN9F95t_E7Zx4X6M8rMWaCvmbPOgRyuk');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

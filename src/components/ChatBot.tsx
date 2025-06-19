@@ -127,7 +127,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
 
     try {
       // Check if we have a valid Gemini API key
-      if (!import.meta.env.GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY === 'your_api_key_here') {
+      if (!import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY === 'your_api_key_here') {
         throw new Error('Gemini API key not configured')
       }
 
