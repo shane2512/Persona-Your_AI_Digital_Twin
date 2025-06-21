@@ -3,9 +3,6 @@ import Anthropic from '@anthropic-ai/sdk';
 
 // Use the correct environment variable for Netlify Functions
 const apiKey = process.env.VITE_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY;
-const anthropic = new Anthropic({
-  apiKey: apiKey,
-});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,14 +41,33 @@ const handler: Handler = async (event) => {
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Message is required' })
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Message is required',
+          response: ''
+        })
       };
     }
 
-    // Validate API key
-    if (!apiKey || apiKey === 'your_claude_api_key_here') {
-      throw new Error('Claude API key not configured properly');
+    // Check if Claude API key is configured
+    if (!apiKey || apiKey === 'your_claude_api_key_here' || apiKey.trim() === '') {
+      console.error('Claude API key not configured');
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'AI API key missing',
+          response: '',
+          fallback: true
+        })
+      };
     }
+
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
 
     // Build context-aware prompt
     let systemPrompt = `You are a wise, empathetic AI reflection assistant powered by Claude Sonnet 4. You help people with personal growth, self-reflection, and decision-making.`;
@@ -107,8 +123,10 @@ Respond as if you're having a caring conversation with someone who trusts you wi
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({ 
+        success: true,
         response: responseText.trim(),
-        success: true 
+        error: null,
+        fallback: false
       })
     };
   } catch (error: any) {
@@ -129,8 +147,9 @@ Respond as if you're having a caring conversation with someone who trusts you wi
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({ 
-        response: fallbackResponse,
         success: false,
+        response: fallbackResponse,
+        error: error.message?.includes('API key') ? 'AI API key missing' : 'Service temporarily unavailable',
         fallback: true
       })
     };
