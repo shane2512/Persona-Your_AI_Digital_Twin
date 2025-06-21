@@ -1,9 +1,11 @@
 import { Handler } from '@netlify/functions';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Use the correct environment variable for Netlify Functions
-const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || 'AIzaSyDdN9F95t_E7Zx4X6M8rMWaCvmbPOgRyuk';
-const genAI = new GoogleGenerativeAI(apiKey);
+const apiKey = process.env.VITE_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY;
+const anthropic = new Anthropic({
+  apiKey: apiKey,
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,61 +55,65 @@ const handler: Handler = async (event) => {
     }
 
     // Validate API key
-    if (!apiKey || apiKey === 'your_api_key_here') {
-      throw new Error('Gemini API key not configured properly');
+    if (!apiKey || apiKey === 'your_claude_api_key_here') {
+      throw new Error('Claude API key not configured properly');
     }
 
-    const prompt = `As a concise AI advisor, analyze these inputs and provide clear, actionable advice:
+    const prompt = `As a wise and empathetic AI advisor, analyze these personal inputs and provide clear, actionable guidance:
 
 Core Values: ${Array.isArray(coreValues) ? coreValues.join(', ') : coreValues}
 Life Goals: ${Array.isArray(lifeGoals) ? lifeGoals.join(', ') : lifeGoals}
-Struggles: ${Array.isArray(currentStruggles) ? currentStruggles.join(', ') : currentStruggles}
-Ideal Self: ${idealSelf}
-Decision: ${currentDecision}
+Current Struggles: ${Array.isArray(currentStruggles) ? currentStruggles.join(', ') : currentStruggles}
+Ideal Self Vision: ${idealSelf}
+Current Decision: ${currentDecision}
 
-Provide a focused response with:
-1. Value alignment analysis (2-3 sentences)
-2. Practical steps for current challenges (3 bullet points)
-3. Decision framework based on values (2-3 sentences)
+Please provide a thoughtful response with:
 
-Keep the total response under 400 words and use clear formatting.`;
+**Value Alignment Analysis**
+How do the current struggles and decision relate to their core values? What tensions or alignments do you see?
 
-    console.log('Generated prompt:', prompt);
+**Practical Action Steps**
+• Three specific, actionable steps they can take to address their current struggles
+• Each step should be concrete and achievable within the next 2-4 weeks
+• Connect each step to their stated values and goals
 
-    const model = genAI.getGenerativeModel({ 
-      model: process.env.MODEL_NAME || "gemini-2.0-flash",
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.8,
-        topK: 40,
-        maxOutputTokens: 1024,
-      }
+**Decision Framework**
+Based on their values and ideal self vision, provide a clear framework for approaching their current decision. What questions should they ask themselves? What criteria should guide their choice?
+
+**Growth Perspective**
+How can this current challenge become a stepping stone toward their ideal self? What opportunities for growth do you see?
+
+Keep the response under 500 words, use clear formatting with headers, and maintain an encouraging yet realistic tone.`;
+
+    console.log('Generated prompt for Claude');
+
+    const message = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1500,
+      temperature: 0.7,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
     });
     
-    console.log('Calling Gemini API...');
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    console.log('Claude API response received');
     
-    console.log('Gemini API response received:', text);
+    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
     
-    if (!text || text.trim().length === 0) {
-      throw new Error('Empty response from Gemini API');
+    if (!responseText || responseText.trim().length === 0) {
+      throw new Error('Empty response from Claude API');
     }
     
-    const formattedText = text
-      .split('\n\n')
-      .map(p => p.trim())
-      .filter(p => p.length > 0)
-      .join('\n\n');
-    
-    console.log('Formatted response:', formattedText);
+    console.log('Formatted response:', responseText);
     
     return {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({ 
-        advice: formattedText,
+        advice: responseText.trim(),
         success: true 
       })
     };
