@@ -3,9 +3,6 @@ import Anthropic from '@anthropic-ai/sdk';
 
 // Use the correct environment variable for Netlify Functions
 const apiKey = process.env.VITE_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY;
-const anthropic = new Anthropic({
-  apiKey: apiKey,
-});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,16 +45,32 @@ const handler: Handler = async (event) => {
         statusCode: 400,
         headers: corsHeaders,
         body: JSON.stringify({ 
+          success: false,
           error: 'Missing required fields for reflection generation',
+          advice: '',
           received: { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision }
         })
       };
     }
 
-    // Validate API key
-    if (!apiKey || apiKey === 'your_claude_api_key_here') {
-      throw new Error('Claude API key not configured properly');
+    // Check if Claude API key is configured
+    if (!apiKey || apiKey === 'your_claude_api_key_here' || apiKey.trim() === '') {
+      console.error('Claude API key not configured');
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'AI API key missing',
+          advice: ''
+        })
+      };
     }
+
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
 
     const prompt = `As a wise and empathetic AI advisor, analyze these personal inputs and provide clear, actionable guidance:
 
@@ -113,8 +126,9 @@ Keep the response under 500 words, use clear formatting with headers, and mainta
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({ 
+        success: true,
         advice: responseText.trim(),
-        success: true 
+        error: null
       })
     };
   } catch (error: any) {
@@ -125,23 +139,24 @@ Keep the response under 500 words, use clear formatting with headers, and mainta
     let statusCode = 500;
     
     if (error.message?.includes('API key')) {
-      errorMessage = 'API key configuration error';
-      statusCode = 401;
+      errorMessage = 'AI API key missing';
+      statusCode = 200; // Return 200 with error flag for consistent handling
     } else if (error.message?.includes('quota') || error.message?.includes('limit')) {
       errorMessage = 'API quota exceeded. Please try again later.';
-      statusCode = 429;
+      statusCode = 200;
     } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
       errorMessage = 'Network error. Please check your connection.';
-      statusCode = 503;
+      statusCode = 200;
     }
     
     return {
       statusCode,
       headers: corsHeaders,
       body: JSON.stringify({ 
+        success: false,
         error: errorMessage,
-        details: error.message,
-        success: false
+        advice: '',
+        details: error.message
       })
     };
   }
