@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote } from 'lucide-react';
+import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote, AlertCircle } from 'lucide-react';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
@@ -18,6 +18,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   const [advice, setAdvice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showPastAdvice, setShowPastAdvice] = useState(false);
   const [pastAdvice, setPastAdvice] = useState<any[]>([]);
@@ -30,6 +31,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
       try {
         setLoading(true);
         setError(null);
+        setIsApiKeyMissing(false);
         
         console.log('Generating reflection with Claude Sonnet 4 for user data:', userData);
         
@@ -79,45 +81,79 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
       } catch (err: any) {
         console.error('Error fetching advice from Claude:', err);
         
-        // Fallback advice if API fails
-        const fallbackAdvice = generateFallbackAdvice(userData);
-        setAdvice(fallbackAdvice);
-        
-        let errorMsg = 'Using offline reflection mode. ';
-        if (err.message?.includes('401') || err.message?.includes('API Error (401)')) {
-          errorMsg += 'Claude API authentication issue. ';
-        } else if (err.message?.includes('429') || err.message?.includes('rate limit')) {
-          errorMsg += 'Claude API rate limit reached. ';
-        } else if (err.message?.includes('timeout') || err.message?.includes('Network error')) {
-          errorMsg += 'Connection timeout. ';
-        }
-        errorMsg += 'For AI-powered insights, please try again later.';
-        
-        setError(errorMsg);
-        
-        // Save fallback advice
-        if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
-          try {
-            await supabase
-              .from('reflections')
-              .insert({
-                user_id: user.id,
-                core_values: userData.coreValues,
-                life_goals: userData.lifeGoals,
-                current_struggles: userData.currentStruggles,
-                ideal_self: userData.idealSelf,
-                current_decision: userData.currentDecision,
-                ai_advice: fallbackAdvice,
-                mood,
-                quote_text: quote.text,
-                quote_author: quote.author
-              });
-          } catch (saveError) {
-            console.error('Error saving fallback to Supabase:', saveError);
+        // Check for specific API key missing error
+        if (err.message === 'AI_API_KEY_MISSING') {
+          setIsApiKeyMissing(true);
+          setError('Our AI helper is having a moment. Please try again soon.');
+          
+          // Generate a basic fallback advice without AI
+          const fallbackAdvice = generateBasicFallbackAdvice(userData);
+          setAdvice(fallbackAdvice);
+          
+          // Save fallback advice
+          if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+            try {
+              await supabase
+                .from('reflections')
+                .insert({
+                  user_id: user.id,
+                  core_values: userData.coreValues,
+                  life_goals: userData.lifeGoals,
+                  current_struggles: userData.currentStruggles,
+                  ideal_self: userData.idealSelf,
+                  current_decision: userData.currentDecision,
+                  ai_advice: fallbackAdvice,
+                  mood,
+                  quote_text: quote.text,
+                  quote_author: quote.author
+                });
+            } catch (saveError) {
+              console.error('Error saving fallback to Supabase:', saveError);
+              saveToLocalStorage(fallbackAdvice);
+            }
+          } else {
             saveToLocalStorage(fallbackAdvice);
           }
         } else {
-          saveToLocalStorage(fallbackAdvice);
+          // Fallback advice if API fails for other reasons
+          const fallbackAdvice = generateFallbackAdvice(userData);
+          setAdvice(fallbackAdvice);
+          
+          let errorMsg = 'Our AI helper is having a moment. Please try again soon.';
+          if (err.message?.includes('401') || err.message?.includes('API Error (401)')) {
+            errorMsg = 'Our AI helper is having a moment. Please try again soon.';
+          } else if (err.message?.includes('429') || err.message?.includes('rate limit')) {
+            errorMsg = 'Our AI helper is busy right now. Please try again in a few minutes.';
+          } else if (err.message?.includes('timeout') || err.message?.includes('Network error')) {
+            errorMsg = 'Connection timeout. Please check your internet and try again.';
+          }
+          
+          setError(errorMsg);
+          
+          // Save fallback advice
+          if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+            try {
+              await supabase
+                .from('reflections')
+                .insert({
+                  user_id: user.id,
+                  core_values: userData.coreValues,
+                  life_goals: userData.lifeGoals,
+                  current_struggles: userData.currentStruggles,
+                  ideal_self: userData.idealSelf,
+                  current_decision: userData.currentDecision,
+                  ai_advice: fallbackAdvice,
+                  mood,
+                  quote_text: quote.text,
+                  quote_author: quote.author
+                });
+            } catch (saveError) {
+              console.error('Error saving fallback to Supabase:', saveError);
+              saveToLocalStorage(fallbackAdvice);
+            }
+          } else {
+            saveToLocalStorage(fallbackAdvice);
+          }
         }
         
         await loadPastReflections();
@@ -168,6 +204,36 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
     fetchAdvice();
   }, [userData, mood, quote, user]);
 
+  const generateBasicFallbackAdvice = (data: UserData): string => {
+    const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision } = data;
+    
+    return `# Your Personal Reflection Summary
+
+**Your Core Values**: ${coreValues.join(', ')}
+These values are your compass. When making decisions, ask yourself: "Which option best aligns with these principles?"
+
+**Your Goals**: ${lifeGoals.join(', ')}
+Break these down into smaller, actionable steps. Focus on progress, not perfection.
+
+**Current Challenges**: ${currentStruggles.join(', ')}
+Remember that challenges are opportunities for growth. Consider how overcoming these obstacles will make you stronger.
+
+**Your Ideal Self Vision**: 
+${idealSelf}
+
+This vision is powerful. Take one small action today that moves you closer to this version of yourself.
+
+**Decision Framework**:
+When facing your current decision about "${currentDecision}", consider:
+1. Which option aligns best with your core values?
+2. Which choice moves you closer to your ideal self?
+3. What would you regret not trying?
+
+Trust yourself - you have the wisdom to make the right choice.
+
+*Note: This reflection was generated using our offline guidance system. For AI-powered insights, please try again later.*`;
+  };
+
   const generateFallbackAdvice = (data: UserData): string => {
     const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision } = data;
     
@@ -213,7 +279,7 @@ Trust yourself - you have the wisdom to make the right choice.`;
     
     const element = document.createElement('a');
     const file = new Blob([
-      `# Persona Mirror Reflection\n\nDate: ${new Date().toLocaleDateString()}\n\nPowered by Claude Sonnet 4\n\n${advice}\n\n---\n${quote.text}\n- ${quote.author}`
+      `# Persona Mirror Reflection\n\nDate: ${new Date().toLocaleDateString()}\n\n${isApiKeyMissing ? 'Generated with offline guidance system' : 'Powered by Claude Sonnet 4'}\n\n${advice}\n\n---\n${quote.text}\n- ${quote.author}`
     ], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = 'persona-mirror-reflection.txt';
@@ -264,9 +330,17 @@ Trust yourself - you have the wisdom to make the right choice.`;
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-4 text-sm text-blue-600 dark:text-blue-400 font-medium"
+          className="mt-4 text-sm font-medium"
         >
-          ✨ Powered by Claude Sonnet 4
+          {isApiKeyMissing ? (
+            <span className="text-amber-600 dark:text-amber-400">
+              ⚡ Generated with offline guidance system
+            </span>
+          ) : (
+            <span className="text-blue-600 dark:text-blue-400">
+              ✨ Powered by Claude Sonnet 4
+            </span>
+          )}
         </motion.div>
       </div>
 
@@ -290,14 +364,28 @@ Trust yourself - you have the wisdom to make the right choice.`;
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6"></div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Claude is analyzing your reflection...</h3>
-            <p className="text-lg text-slate-600 dark:text-slate-400">This may take a moment as Claude processes your inputs.</p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Generating your reflection...</h3>
+            <p className="text-lg text-slate-600 dark:text-slate-400">This may take a moment as we process your inputs.</p>
           </div>
         ) : (
           <div className="space-y-8">
             {error && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 mb-6">
-                <p className="text-amber-800 dark:text-amber-200">{error}</p>
+              <div className={`rounded-2xl p-6 mb-6 border ${
+                isApiKeyMissing 
+                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                  : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+              }`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <AlertCircle size={20} className={isApiKeyMissing ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'} />
+                  <p className={`font-medium ${isApiKeyMissing ? 'text-amber-800 dark:text-amber-200' : 'text-blue-800 dark:text-blue-200'}`}>
+                    {error}
+                  </p>
+                </div>
+                {isApiKeyMissing && (
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Don't worry - we've created a personalized reflection based on your inputs below.
+                  </p>
+                )}
               </div>
             )}
             
@@ -310,9 +398,9 @@ Trust yourself - you have the wisdom to make the right choice.`;
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   className="mb-6"
                 >
-                  {paragraph.startsWith('**') ? (
+                  {paragraph.startsWith('**') || paragraph.startsWith('# ') ? (
                     <h3 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">
-                      {paragraph.replace(/\*\*/g, '')}
+                      {paragraph.replace(/\*\*/g, '').replace(/^# /, '')}
                     </h3>
                   ) : (
                     <p className="text-lg leading-relaxed">{paragraph}</p>
