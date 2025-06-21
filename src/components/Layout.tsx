@@ -126,70 +126,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
       
       {/* Main Content */}
-      <main className="relative flex-1 z-10">
-        {/* Hero Section */}
-        <div className="max-w-7xl mx-auto px-6 py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9 }}
-            className="text-center mb-16 space-y-8"
-          >
-            <div className="space-y-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 rounded-full border border-blue-200/50 dark:border-blue-800/50"
-              >
-                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">AI-Powered Self-Discovery</span>
-              </motion.div>
-              
-              <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
-                  Discover Your
-                </span>
-                <br />
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-                  True Self
-                </span>
-              </h2>
-              
-              <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
-                Transform your decision-making with AI-powered insights that align with your deepest values and aspirations.
-              </p>
-            </div>
+    <main className="relative flex-1 z-10">
+  <div className="max-w-7xl mx-auto px-6 py-16">
+    {/* Removed hero section as requested */}
 
-            {/* Feature highlights */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.4 }}
-              className="flex flex-wrap justify-center gap-6 mt-12"
-            >
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-full border border-slate-200/50 dark:border-slate-700/50">
-                <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Values-Based Decisions</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-full border border-slate-200/50 dark:border-slate-700/50">
-                <Zap className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Instant AI Insights</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-full border border-slate-200/50 dark:border-slate-700/50">
-                <Brain className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Personal Growth</span>
-              </div>
-            </motion.div>
-          </motion.div>
-          
-          {/* Main Content Area */}
-          <div className="max-w-4xl mx-auto">
-            {children}
-          </div>
-        </div>
-      </main>
-      
+    {/* Main Content Area */}
+    <div className="max-w-4xl mx-auto">
+      {children}
+    </div>
+  </div>
+</main>
+
       {/* Floating Chat Button */}
       <motion.button
         initial={{ opacity: 0, scale: 0 }}
