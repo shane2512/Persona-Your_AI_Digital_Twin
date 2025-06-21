@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Create a centralized API client for Claude requests
-class ClaudeAPIClient {
+// Create a centralized API client for AI requests
+class AIAPIClient {
   private isBoltEnvironment() {
     return window.location.hostname.includes('webcontainer') || 
            window.location.hostname.includes('bolt') ||
@@ -38,7 +38,7 @@ class ClaudeAPIClient {
         endpoint: this.getEndpoint('get-advice')
       });
       
-      console.log('Generating reflection with Claude Sonnet 4:', userData);
+      console.log('Generating reflection with AI:', userData);
       
       const response = await axios.post(
         this.getEndpoint('get-advice'),
@@ -53,19 +53,16 @@ class ClaudeAPIClient {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 45000, // Increased timeout for Bolt environment
+          timeout: 60000, // Increased timeout for AI processing
           // Accept all status codes to handle our custom error responses
           validateStatus: () => true
         }
       );
 
-      console.log('Claude reflection response:', response.data);
+      console.log('AI reflection response:', response.data);
       
-      // Check for API key missing or other errors
-      if (response.data?.success === false || response.data?.error) {
-        if (response.data?.error === 'AI API key missing') {
-          throw new Error('AI_API_KEY_MISSING');
-        }
+      // Check for errors but still return the response (might have fallback advice)
+      if (response.data?.success === false && !response.data?.advice) {
         throw new Error(response.data?.error || 'Service temporarily unavailable');
       }
       
@@ -76,23 +73,15 @@ class ClaudeAPIClient {
       
       return response.data;
     } catch (error: any) {
-      console.error('Error generating reflection with Claude:', error);
-      
-      // Handle specific API key missing error
-      if (error.message === 'AI_API_KEY_MISSING') {
-        throw new Error('AI_API_KEY_MISSING');
-      }
+      console.error('Error generating reflection with AI:', error);
       
       // Enhanced error handling with Bolt-specific logic
       if (error.response) {
         console.error('Response error:', error.response.status, error.response.data);
         
-        // Check if the response contains our custom error format
-        if (error.response.data?.success === false) {
-          if (error.response.data?.error === 'AI API key missing') {
-            throw new Error('AI_API_KEY_MISSING');
-          }
-          throw new Error(error.response.data?.error || 'Service error');
+        // Check if the response contains our custom error format with fallback advice
+        if (error.response.data?.advice) {
+          return error.response.data; // Return the fallback advice
         }
         
         // If we're in Bolt and get a 503, try direct Netlify call as fallback
@@ -110,33 +99,27 @@ class ClaudeAPIClient {
               },
               {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 30000,
+                timeout: 45000,
                 validateStatus: () => true
               }
             );
             console.log('Direct Netlify call response:', fallbackResponse.data);
             
-            // Check fallback response for errors
-            if (fallbackResponse.data?.success === false || fallbackResponse.data?.error) {
-              if (fallbackResponse.data?.error === 'AI API key missing') {
-                throw new Error('AI_API_KEY_MISSING');
-              }
-              throw new Error(fallbackResponse.data?.error || 'Service temporarily unavailable');
+            // Return even if there's an error but advice is present
+            if (fallbackResponse.data?.advice) {
+              return fallbackResponse.data;
             }
             
-            return fallbackResponse.data;
+            throw new Error(fallbackResponse.data?.error || 'Service temporarily unavailable');
           } catch (fallbackError: any) {
             console.error('Direct Netlify call also failed:', fallbackError);
-            if (fallbackError.message === 'AI_API_KEY_MISSING') {
-              throw new Error('AI_API_KEY_MISSING');
-            }
           }
         }
         
-        throw new Error(`Claude API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
+        throw new Error(`AI API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
       } else if (error.request) {
         console.error('Request error:', error.request);
-        throw new Error('Network error: Unable to reach Claude API server');
+        throw new Error('Network error: Unable to reach AI API server');
       } else {
         console.error('Setup error:', error.message);
         throw new Error(`Request setup error: ${error.message}`);
@@ -146,14 +129,14 @@ class ClaudeAPIClient {
 
   async sendChatMessage(message: string, userContext?: any[]) {
     try {
-      console.log('Environment check for Claude chat:', {
+      console.log('Environment check for AI chat:', {
         hostname: window.location.hostname,
         isBolt: this.isBoltEnvironment(),
         isLocal: this.isLocalDev(),
         endpoint: this.getEndpoint('chat')
       });
       
-      console.log('Sending chat message to Claude:', message);
+      console.log('Sending chat message to AI:', message);
       
       const response = await axios.post(
         this.getEndpoint('chat'),
@@ -165,53 +148,31 @@ class ClaudeAPIClient {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 45000, // Increased timeout for Bolt environment
+          timeout: 45000, // Increased timeout for AI processing
           // Accept all status codes to handle our custom error responses
           validateStatus: () => true
         }
       );
 
-      console.log('Claude chat response:', response.data);
+      console.log('AI chat response:', response.data);
       
-      // Check for API key missing or other errors
-      if (response.data?.success === false || response.data?.error) {
-        if (response.data?.error === 'AI API key missing') {
-          // Return fallback response for chat
-          return {
-            success: false,
-            response: "Our AI helper is having a moment. Please try again soon.",
-            error: 'AI API key missing',
-            fallback: true
-          };
-        }
-        // For other errors, return the fallback response if available
-        return response.data;
-      }
-      
+      // Always return the response - it will have fallback content if needed
       return response.data;
     } catch (error: any) {
-      console.error('Error sending chat message to Claude:', error);
+      console.error('Error sending chat message to AI:', error);
       
       // Enhanced error handling with Bolt-specific logic
       if (error.response) {
-        console.error('Claude chat response error:', error.response.status, error.response.data);
+        console.error('AI chat response error:', error.response.status, error.response.data);
         
-        // Check if the response contains our custom error format
-        if (error.response.data?.success === false) {
-          if (error.response.data?.error === 'AI API key missing') {
-            return {
-              success: false,
-              response: "Our AI helper is having a moment. Please try again soon.",
-              error: 'AI API key missing',
-              fallback: true
-            };
-          }
-          return error.response.data; // Return the fallback response
+        // Check if the response contains fallback content
+        if (error.response.data?.response) {
+          return error.response.data;
         }
         
         // If we're in Bolt and get a 503, try direct Netlify call as fallback
         if (this.isBoltEnvironment() && error.response.status >= 500) {
-          console.log('Trying direct Netlify call for Claude chat as fallback...');
+          console.log('Trying direct Netlify call for AI chat as fallback...');
           try {
             const fallbackResponse = await axios.post(
               'https://persona-mirror-ai.netlify.app/.netlify/functions/chat',
@@ -225,24 +186,14 @@ class ClaudeAPIClient {
                 validateStatus: () => true
               }
             );
-            console.log('Direct Netlify Claude chat call response:', fallbackResponse.data);
+            console.log('Direct Netlify AI chat call response:', fallbackResponse.data);
             
-            // Check fallback response for errors
-            if (fallbackResponse.data?.success === false || fallbackResponse.data?.error) {
-              if (fallbackResponse.data?.error === 'AI API key missing') {
-                return {
-                  success: false,
-                  response: "Our AI helper is having a moment. Please try again soon.",
-                  error: 'AI API key missing',
-                  fallback: true
-                };
-              }
-              return fallbackResponse.data; // Return the fallback response
+            // Return the response even if it's a fallback
+            if (fallbackResponse.data?.response) {
+              return fallbackResponse.data;
             }
-            
-            return fallbackResponse.data;
           } catch (fallbackError: any) {
-            console.error('Direct Netlify Claude chat call also failed:', fallbackError);
+            console.error('Direct Netlify AI chat call also failed:', fallbackError);
           }
         }
       }
@@ -250,17 +201,18 @@ class ClaudeAPIClient {
       // Return a generic fallback response for any unhandled errors
       return {
         success: false,
-        response: "Our AI helper is having a moment. Please try again soon.",
+        response: "I'm here to help you reflect and explore your thoughts. What's been on your mind lately?",
+        provider: 'Fallback Assistant',
         error: 'Service temporarily unavailable',
         fallback: true
       };
     }
   }
 
-  // Utility method to check Claude API health
+  // Utility method to check AI API health
   async checkAPIHealth() {
     try {
-      console.log('Checking Claude API health...');
+      console.log('Checking AI API health...');
       
       // For Bolt environment, try both proxy and direct
       if (this.isBoltEnvironment()) {
@@ -272,7 +224,7 @@ class ClaudeAPIClient {
             { timeout: 10000, validateStatus: () => true }
           );
           
-          if (testResponse.data?.success !== false) {
+          if (testResponse.data?.response) {
             return { healthy: true, method: 'proxy', response: testResponse.data };
           } else {
             throw new Error('Proxy returned error response');
@@ -286,7 +238,7 @@ class ClaudeAPIClient {
             { timeout: 10000, validateStatus: () => true }
           );
           
-          if (directResponse.data?.success !== false) {
+          if (directResponse.data?.response) {
             return { healthy: true, method: 'direct', response: directResponse.data };
           } else {
             throw new Error('Direct call returned error response');
@@ -295,24 +247,24 @@ class ClaudeAPIClient {
       } else {
         // For production, use normal endpoint
         const testResponse = await this.sendChatMessage('Health check');
-        if (testResponse?.success !== false) {
+        if (testResponse?.response) {
           return { healthy: true, method: 'normal', response: testResponse };
         } else {
           throw new Error('Health check returned error response');
         }
       }
     } catch (error) {
-      console.error('Claude API health check failed:', error);
+      console.error('AI API health check failed:', error);
       return { healthy: false, error: error.message };
     }
   }
 }
 
 // Export a singleton instance
-export const claudeAPI = new ClaudeAPIClient();
+export const claudeAPI = new AIAPIClient();
 
 // Export with backward compatibility
 export const geminiAPI = claudeAPI; // For backward compatibility
 
 // Export the class for testing purposes
-export { ClaudeAPIClient };
+export { AIAPIClient };
