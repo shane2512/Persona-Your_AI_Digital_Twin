@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Create a centralized API client for Gemini requests
-class GeminiAPIClient {
+// Create a centralized API client for Claude requests
+class ClaudeAPIClient {
   private isBoltEnvironment() {
     return window.location.hostname.includes('webcontainer') || 
            window.location.hostname.includes('bolt') ||
@@ -38,7 +38,7 @@ class GeminiAPIClient {
         endpoint: this.getEndpoint('get-advice')
       });
       
-      console.log('Generating reflection with data:', userData);
+      console.log('Generating reflection with Claude Sonnet 4:', userData);
       
       const response = await axios.post(
         this.getEndpoint('get-advice'),
@@ -61,7 +61,7 @@ class GeminiAPIClient {
         }
       );
 
-      console.log('Reflection response:', response.data);
+      console.log('Claude reflection response:', response.data);
       
       // Handle fallback responses from proxy
       if (response.data?.fallback) {
@@ -70,7 +70,7 @@ class GeminiAPIClient {
       
       return response.data;
     } catch (error: any) {
-      console.error('Error generating reflection:', error);
+      console.error('Error generating reflection with Claude:', error);
       
       // Enhanced error handling with Bolt-specific logic
       if (error.response) {
@@ -101,10 +101,10 @@ class GeminiAPIClient {
           }
         }
         
-        throw new Error(`API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
+        throw new Error(`Claude API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
       } else if (error.request) {
         console.error('Request error:', error.request);
-        throw new Error('Network error: Unable to reach the server');
+        throw new Error('Network error: Unable to reach Claude API server');
       } else {
         console.error('Setup error:', error.message);
         throw new Error(`Request setup error: ${error.message}`);
@@ -114,14 +114,14 @@ class GeminiAPIClient {
 
   async sendChatMessage(message: string, userContext?: any[]) {
     try {
-      console.log('Environment check for chat:', {
+      console.log('Environment check for Claude chat:', {
         hostname: window.location.hostname,
         isBolt: this.isBoltEnvironment(),
         isLocal: this.isLocalDev(),
         endpoint: this.getEndpoint('chat')
       });
       
-      console.log('Sending chat message:', message);
+      console.log('Sending chat message to Claude:', message);
       
       const response = await axios.post(
         this.getEndpoint('chat'),
@@ -140,7 +140,7 @@ class GeminiAPIClient {
         }
       );
 
-      console.log('Chat response:', response.data);
+      console.log('Claude chat response:', response.data);
       
       // Handle fallback responses from proxy
       if (response.data?.fallback) {
@@ -149,15 +149,15 @@ class GeminiAPIClient {
       
       return response.data;
     } catch (error: any) {
-      console.error('Error sending chat message:', error);
+      console.error('Error sending chat message to Claude:', error);
       
       // Enhanced error handling with Bolt-specific logic
       if (error.response) {
-        console.error('Chat response error:', error.response.status, error.response.data);
+        console.error('Claude chat response error:', error.response.status, error.response.data);
         
         // If we're in Bolt and get a 503, try direct Netlify call as fallback
         if (this.isBoltEnvironment() && error.response.status >= 500) {
-          console.log('Trying direct Netlify call for chat as fallback...');
+          console.log('Trying direct Netlify call for Claude chat as fallback...');
           try {
             const fallbackResponse = await axios.post(
               'https://persona-mirror-ai.netlify.app/.netlify/functions/chat',
@@ -170,28 +170,28 @@ class GeminiAPIClient {
                 timeout: 30000
               }
             );
-            console.log('Direct Netlify chat call successful:', fallbackResponse.data);
+            console.log('Direct Netlify Claude chat call successful:', fallbackResponse.data);
             return fallbackResponse.data;
           } catch (fallbackError) {
-            console.error('Direct Netlify chat call also failed:', fallbackError);
+            console.error('Direct Netlify Claude chat call also failed:', fallbackError);
           }
         }
         
-        throw new Error(`Chat API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
+        throw new Error(`Claude Chat API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
       } else if (error.request) {
-        console.error('Chat request error:', error.request);
-        throw new Error('Network error: Unable to reach the chat server');
+        console.error('Claude chat request error:', error.request);
+        throw new Error('Network error: Unable to reach Claude chat server');
       } else {
-        console.error('Chat setup error:', error.message);
-        throw new Error(`Chat request setup error: ${error.message}`);
+        console.error('Claude chat setup error:', error.message);
+        throw new Error(`Claude chat request setup error: ${error.message}`);
       }
     }
   }
 
-  // Utility method to check API health
+  // Utility method to check Claude API health
   async checkAPIHealth() {
     try {
-      console.log('Checking API health...');
+      console.log('Checking Claude API health...');
       
       // For Bolt environment, try both proxy and direct
       if (this.isBoltEnvironment()) {
@@ -219,14 +219,17 @@ class GeminiAPIClient {
         return { healthy: true, method: 'normal', response: testResponse };
       }
     } catch (error) {
-      console.error('API health check failed:', error);
+      console.error('Claude API health check failed:', error);
       return { healthy: false, error: error.message };
     }
   }
 }
 
 // Export a singleton instance
-export const geminiAPI = new GeminiAPIClient();
+export const claudeAPI = new ClaudeAPIClient();
+
+// Export with backward compatibility
+export const geminiAPI = claudeAPI; // For backward compatibility
 
 // Export the class for testing purposes
-export { GeminiAPIClient };
+export { ClaudeAPIClient };

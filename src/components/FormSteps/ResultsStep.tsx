@@ -6,7 +6,7 @@ import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { geminiAPI } from '../../utils/apiClient';
+import { claudeAPI } from '../../utils/apiClient';
 
 interface ResultsStepProps {
   userData: UserData;
@@ -31,9 +31,9 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         setLoading(true);
         setError(null);
         
-        console.log('Generating reflection for user data:', userData);
+        console.log('Generating reflection with Claude Sonnet 4 for user data:', userData);
         
-        const response = await geminiAPI.generateReflection(userData);
+        const response = await claudeAPI.generateReflection(userData);
         
         if (response && response.advice) {
           setAdvice(response.advice);
@@ -77,7 +77,7 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
           throw new Error('Invalid response format');
         }
       } catch (err: any) {
-        console.error('Error fetching advice:', err);
+        console.error('Error fetching advice from Claude:', err);
         
         // Fallback advice if API fails
         const fallbackAdvice = generateFallbackAdvice(userData);
@@ -85,9 +85,9 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         
         let errorMsg = 'Using offline reflection mode. ';
         if (err.message?.includes('401') || err.message?.includes('API Error (401)')) {
-          errorMsg += 'API authentication issue. ';
+          errorMsg += 'Claude API authentication issue. ';
         } else if (err.message?.includes('429') || err.message?.includes('rate limit')) {
-          errorMsg += 'API rate limit reached. ';
+          errorMsg += 'Claude API rate limit reached. ';
         } else if (err.message?.includes('timeout') || err.message?.includes('Network error')) {
           errorMsg += 'Connection timeout. ';
         }
@@ -213,7 +213,7 @@ Trust yourself - you have the wisdom to make the right choice.`;
     
     const element = document.createElement('a');
     const file = new Blob([
-      `# Persona Mirror Reflection\n\nDate: ${new Date().toLocaleDateString()}\n\n${advice}\n\n---\n${quote.text}\n- ${quote.author}`
+      `# Persona Mirror Reflection\n\nDate: ${new Date().toLocaleDateString()}\n\nPowered by Claude Sonnet 4\n\n${advice}\n\n---\n${quote.text}\n- ${quote.author}`
     ], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = 'persona-mirror-reflection.txt';
@@ -260,6 +260,14 @@ Trust yourself - you have the wisdom to make the right choice.`;
         >
           Based on your values, goals, struggles, and vision of your ideal self.
         </motion.p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mt-4 text-sm text-blue-600 dark:text-blue-400 font-medium"
+        >
+          ✨ Powered by Claude Sonnet 4
+        </motion.div>
       </div>
 
       <div className="mb-6">
@@ -282,8 +290,8 @@ Trust yourself - you have the wisdom to make the right choice.`;
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6"></div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Generating your personalized reflection...</h3>
-            <p className="text-lg text-slate-600 dark:text-slate-400">This may take a moment as we analyze your inputs.</p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Claude is analyzing your reflection...</h3>
+            <p className="text-lg text-slate-600 dark:text-slate-400">This may take a moment as Claude processes your inputs.</p>
           </div>
         ) : (
           <div className="space-y-8">

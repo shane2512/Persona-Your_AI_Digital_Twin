@@ -44,16 +44,16 @@ export default defineConfig({
             if (res && !res.headersSent) {
               res.writeHead(503, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ 
-                error: 'Service temporarily unavailable',
+                error: 'Claude service temporarily unavailable',
                 fallback: true 
               }));
             }
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Proxying reflection request:', req.method, req.url, '→', proxyReq.path);
+            console.log('Proxying Claude reflection request:', req.method, req.url, '→', proxyReq.path);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Reflection proxy response:', proxyRes.statusCode, 'for', req.url);
+            console.log('Claude reflection proxy response:', proxyRes.statusCode, 'for', req.url);
           });
         }
       },
@@ -72,16 +72,16 @@ export default defineConfig({
             if (res && !res.headersSent) {
               res.writeHead(503, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ 
-                response: "I'm currently having connection issues, but I'm here to help you reflect. What's on your mind?",
+                response: "I'm Claude, and I'm currently having connection issues, but I'm here to help you reflect. What's on your mind?",
                 fallback: true 
               }));
             }
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Proxying chat request:', req.method, req.url, '→', proxyReq.path);
+            console.log('Proxying Claude chat request:', req.method, req.url, '→', proxyReq.path);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Chat proxy response:', proxyRes.statusCode, 'for', req.url);
+            console.log('Claude chat proxy response:', proxyRes.statusCode, 'for', req.url);
           });
         }
       }

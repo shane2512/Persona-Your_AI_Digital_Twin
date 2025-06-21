@@ -1,9 +1,11 @@
 import { Handler } from '@netlify/functions';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Use the correct environment variable for Netlify Functions
-const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || 'AIzaSyDdN9F95t_E7Zx4X6M8rMWaCvmbPOgRyuk';
-const genAI = new GoogleGenerativeAI(apiKey);
+const apiKey = process.env.VITE_CLAUDE_API_KEY || process.env.CLAUDE_API_KEY;
+const anthropic = new Anthropic({
+  apiKey: apiKey,
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,12 +49,12 @@ const handler: Handler = async (event) => {
     }
 
     // Validate API key
-    if (!apiKey || apiKey === 'your_api_key_here') {
-      throw new Error('Gemini API key not configured properly');
+    if (!apiKey || apiKey === 'your_claude_api_key_here') {
+      throw new Error('Claude API key not configured properly');
     }
 
     // Build context-aware prompt
-    let systemPrompt = `You are a wise, empathetic AI reflection assistant. You help people with personal growth, self-reflection, and decision-making.`;
+    let systemPrompt = `You are a wise, empathetic AI reflection assistant powered by Claude Sonnet 4. You help people with personal growth, self-reflection, and decision-making.`;
     
     if (userContext && userContext.length > 0) {
       const contextSummary = userContext.map((reflection: any) => {
@@ -81,32 +83,31 @@ Respond as if you're having a caring conversation with someone who trusts you wi
 
     console.log('Generated chat prompt:', fullPrompt);
 
-    const model = genAI.getGenerativeModel({ 
-      model: process.env.MODEL_NAME || "gemini-2.0-flash",
-      generationConfig: {
-        temperature: 0.8,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 512,
-      }
+    const response = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 512,
+      temperature: 0.8,
+      messages: [
+        {
+          role: "user",
+          content: fullPrompt
+        }
+      ]
     });
     
-    console.log('Calling Gemini API for chat...');
-    const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
-    const text = response.text();
+    console.log('Claude chat response received');
     
-    console.log('Gemini chat response received:', text);
+    const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
     
-    if (!text || text.trim().length === 0) {
-      throw new Error('Empty response from Gemini API');
+    if (!responseText || responseText.trim().length === 0) {
+      throw new Error('Empty response from Claude API');
     }
     
     return {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({ 
-        response: text.trim(),
+        response: responseText.trim(),
         success: true 
       })
     };

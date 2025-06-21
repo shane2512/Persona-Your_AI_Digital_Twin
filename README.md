@@ -2,7 +2,7 @@
 
 [![Built on Bolt](https://img.shields.io/badge/Built%20on-Bolt-blue?style=flat-square)](https://bolt.new)
 
-An AI-powered self-reflection tool that helps you align your decisions with your core values and life goals. Using Google's Gemini AI, it provides personalized guidance and actionable insights based on your unique situation.
+An AI-powered self-reflection tool that helps you align your decisions with your core values and life goals. Using Claude Sonnet 4, it provides personalized guidance and actionable insights based on your unique situation.
 
 ## Features
 
@@ -11,9 +11,9 @@ An AI-powered self-reflection tool that helps you align your decisions with your
 - 💭 Current Struggles Analysis
 - 🔮 Ideal Self Exploration
 - 🤔 Decision-Making Support
-- 🤖 AI-Powered Personalized Advice
+- 🤖 AI-Powered Personalized Advice with Claude Sonnet 4
 - 👤 User Authentication & Data Persistence
-- 💬 AI Chat Assistant
+- 💬 Claude AI Chat Assistant
 - 🌙 Dark Mode Support
 - 📱 Responsive Design
 
@@ -23,7 +23,7 @@ An AI-powered self-reflection tool that helps you align your decisions with your
 - Vite for blazing-fast development
 - Tailwind CSS for styling
 - Framer Motion for smooth animations
-- Google's Gemini AI for intelligent insights
+- Claude Sonnet 4 for intelligent insights
 - Supabase for authentication and database
 - Netlify for serverless deployment
 
@@ -34,8 +34,8 @@ An AI-powered self-reflection tool that helps you align your decisions with your
 Create a `.env` file in your project root with the following variables:
 
 ```env
-# Google Gemini AI
-VITE_GEMINI_API_KEY=your_gemini_api_key
+# Claude AI
+VITE_CLAUDE_API_KEY=your_claude_api_key
 
 # Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
@@ -44,8 +44,8 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ### Getting Your API Keys
 
-#### 1. Google Gemini API Key
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+#### 1. Claude API Key
+1. Go to [Anthropic Console](https://console.anthropic.com/)
 2. Create a new API key
 3. Copy the key to your `.env` file
 
@@ -61,7 +61,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 1. Go to your Netlify site dashboard
 2. Navigate to Site settings → Environment variables
 3. Add the following variables:
-   - `VITE_GEMINI_API_KEY`: Your Google Gemini API key
+   - `VITE_CLAUDE_API_KEY`: Your Claude API key
    - `VITE_SUPABASE_URL`: Your Supabase project URL
    - `VITE_SUPABASE_ANON_KEY`: Your Supabase anon key
 
@@ -84,7 +84,7 @@ To run the project locally:
 
 ### Core Functionality
 - **Multi-step Reflection Form**: Guides users through values, goals, struggles, ideal self, and current decisions
-- **AI-Powered Insights**: Uses Google Gemini to provide personalized advice
+- **AI-Powered Insights**: Uses Claude Sonnet 4 to provide personalized advice
 - **Data Persistence**: Saves reflections to Supabase for authenticated users, localStorage for guests
 
 ### User Authentication
@@ -92,15 +92,26 @@ To run the project locally:
 - **Profile Management**: User profiles with reflection history
 - **Guest Mode**: Full functionality available without authentication
 
-### AI Chat Assistant
+### Claude AI Chat Assistant
 - **Contextual Responses**: Provides advice based on user's reflection history
 - **Always Accessible**: Floating chat button for quick access
 - **Personalized Guidance**: Different responses for authenticated vs guest users
+- **Powered by Claude Sonnet 4**: Smart, efficient model for everyday use
 
 ### Responsive Design
 - **Mobile-First**: Optimized for all screen sizes
 - **Dark Mode**: Automatic theme switching
 - **Smooth Animations**: Framer Motion for enhanced UX
+
+## Why Claude Sonnet 4?
+
+Claude Sonnet 4 is the perfect AI model for Persona Mirror because:
+
+- **Empathetic Understanding**: Superior emotional intelligence for personal guidance
+- **Contextual Memory**: Excellent at referencing previous conversations and reflections
+- **Thoughtful Analysis**: Provides deeper insights into personal values and decision-making
+- **Natural Communication**: More conversational and supportive tone than other models
+- **Smart & Efficient**: Optimized for everyday use with consistent, high-quality responses
 
 ## Troubleshooting
 
@@ -114,7 +125,7 @@ If you're experiencing "failed to fetch" errors on Netlify:
 
 ### Common Issues
 - **Build Failures**: Check that all environment variables are set
-- **API Errors**: Verify your Gemini API key is valid and has quota
+- **API Errors**: Verify your Claude API key is valid and has quota
 - **Auth Issues**: Ensure Supabase email confirmation is disabled for development
 
 ## Contributing
@@ -127,4 +138,4 @@ MIT
 
 ---
 
-Created with ❤️ using [Bolt](https://bolt.new)
+Created with ❤️ using [Bolt](https://bolt.new) and powered by Claude Sonnet 4

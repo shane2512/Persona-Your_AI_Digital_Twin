@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Bot, User, Loader2, Sparkles, AlertCircle, Wifi, WifiOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { geminiAPI } from '../utils/apiClient'
+import { claudeAPI } from '../utils/apiClient'
 
 interface Message {
   id: string
@@ -24,7 +24,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     {
       id: '1',
       type: 'bot',
-      content: "Hello! I'm your AI reflection assistant. I can help you explore your thoughts, discuss your reflections, and provide guidance based on your personal journey. What would you like to talk about?",
+      content: "Hello! I'm Claude, your AI reflection assistant. I can help you explore your thoughts, discuss your reflections, and provide guidance based on your personal journey. What would you like to talk about?",
       timestamp: new Date()
     }
   ])
@@ -58,17 +58,17 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   const checkAPIConnection = async () => {
     setConnectionStatus('checking')
     try {
-      const health = await geminiAPI.checkAPIHealth()
+      const health = await claudeAPI.checkAPIHealth()
       if (health.healthy) {
         setConnectionStatus('connected')
         setConnectionMethod(health.method || 'unknown')
-        console.log(`API connected via ${health.method}`)
+        console.log(`Claude API connected via ${health.method}`)
       } else {
         setConnectionStatus('offline')
         setConnectionMethod('')
       }
     } catch (error) {
-      console.error('Health check error:', error)
+      console.error('Claude health check error:', error)
       setConnectionStatus('offline')
       setConnectionMethod('')
     }
@@ -114,8 +114,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     setIsLoading(true)
 
     try {
-      console.log('Sending message via geminiAPI...')
-      const response = await geminiAPI.sendChatMessage(
+      console.log('Sending message to Claude...')
+      const response = await claudeAPI.sendChatMessage(
         userMessage.content,
         userReflections.slice(0, 3) // Send recent reflections for context
       )
@@ -137,10 +137,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
           setConnectionStatus('connected')
         }
       } else {
-        throw new Error('No response from AI')
+        throw new Error('No response from Claude')
       }
     } catch (error: any) {
-      console.error('Error getting AI response:', error)
+      console.error('Error getting Claude response:', error)
       setConnectionStatus('offline')
       
       // Provide contextual fallback responses based on user input
@@ -201,10 +201,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
 
   const getStatusText = () => {
     switch (connectionStatus) {
-      case 'connected': return connectionMethod ? `AI Connected (${connectionMethod})` : 'AI Connected'
+      case 'connected': return connectionMethod ? `Claude Connected (${connectionMethod})` : 'Claude Connected'
       case 'fallback': return 'Fallback Mode'
       case 'offline': return 'Offline Mode'
-      case 'checking': return 'Connecting...'
+      case 'checking': return 'Connecting to Claude...'
       default: return 'Unknown'
     }
   }
@@ -251,7 +251,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   <Sparkles size={18} />
                 </div>
                 <div>
-                  <h3 className="font-semibold">AI Reflection Assistant</h3>
+                  <h3 className="font-semibold">Claude AI Assistant</h3>
                   <div className="flex items-center gap-2">
                     {getStatusIcon()}
                     <p className="text-xs opacity-90">{getStatusText()}</p>
@@ -371,7 +371,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-2xl rounded-bl-md">
                     <div className="flex items-center gap-2">
                       <Loader2 size={16} className="animate-spin text-blue-500" />
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Thinking...</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Claude is thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -388,7 +388,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask me anything about your reflections..."
+                  placeholder="Ask Claude about your reflections..."
                   className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-sm"
                   disabled={isLoading}
                 />
