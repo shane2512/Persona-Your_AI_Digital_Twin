@@ -1,5 +1,5 @@
 import React, { useState, KeyboardEvent } from 'react';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,6 +21,7 @@ const ChipInput: React.FC<ChipInputProps> = ({
   helperText,
 }) => {
   const [inputValue, setInputValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,41 +54,32 @@ const ChipInput: React.FC<ChipInputProps> = ({
 
   return (
     <div className="form-group">
-      <label htmlFor={`chip-input-${label}`} className="block text-base font-medium mb-2 text-calm-700 dark:text-calm-200">
+      <label htmlFor={`chip-input-${label}`} className="block text-lg font-semibold mb-3 text-slate-900 dark:text-white">
         {label}
       </label>
       
       <div 
         className={cn(
-          "relative flex flex-wrap gap-2 p-4 rounded-2xl min-h-[100px]",
-          "bg-white/90 dark:bg-surface-800/90 backdrop-blur-sm",
-          "border-2 border-calm-200/80 dark:border-calm-400/30",
-          "shadow-[0_4px_12px_-2px_rgba(14,165,233,0.1)]",
-          "dark:shadow-[0_4px_12px_-2px_rgba(56,189,248,0.2)]",
-          "focus-within:ring-2 focus-within:ring-calm-500/30 focus-within:border-calm-500/50",
-          "dark:focus-within:ring-calm-400/50 dark:focus-within:border-calm-400/70",
-          "transition-all duration-300"
+          "relative flex flex-wrap gap-3 p-6 rounded-2xl min-h-[120px] transition-all duration-300 cursor-text",
+          "bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm",
+          "border-2 transition-all duration-300",
+          isFocused 
+            ? "border-blue-500 shadow-lg shadow-blue-500/20 bg-white dark:bg-slate-800" 
+            : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
         )}
         onClick={() => inputRef.current?.focus()}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       >
         <AnimatePresence>
           {value.map((chip, index) => (
             <motion.div
               key={`${chip}-${index}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.8, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -10 }}
               transition={{ duration: 0.2 }}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-xl",
-                "bg-calm-100/80 dark:bg-calm-400/20",
-                "border border-calm-200 dark:border-calm-400/40",
-                "text-calm-700 dark:text-calm-200",
-                "shadow-[0_2px_4px_rgba(14,165,233,0.06)]",
-                "dark:shadow-[0_2px_4px_rgba(56,189,248,0.1)]",
-                "group hover:bg-calm-200/80 dark:hover:bg-calm-400/30",
-                "transition-all duration-300"
-              )}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200/50 dark:border-blue-800/50 text-blue-700 dark:text-blue-300 group hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900/50 dark:hover:to-purple-900/50 transition-all duration-200"
             >
               <span className="text-sm font-medium">{chip}</span>
               <button
@@ -96,13 +88,7 @@ const ChipInput: React.FC<ChipInputProps> = ({
                   e.stopPropagation();
                   removeChip(index);
                 }}
-                className={cn(
-                  "p-1 rounded-full",
-                  "text-calm-500 hover:text-calm-700 dark:text-calm-300 dark:hover:text-calm-100",
-                  "hover:bg-calm-200 dark:hover:bg-calm-400/40",
-                  "focus:outline-none focus:ring-2 focus:ring-calm-500/30 dark:focus:ring-calm-400/50",
-                  "transition-colors duration-200"
-                )}
+                className="p-1 rounded-full hover:bg-blue-200/50 dark:hover:bg-blue-800/50 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 transition-colors duration-200"
                 aria-label={`Remove ${chip}`}
               >
                 <X size={14} />
@@ -112,31 +98,31 @@ const ChipInput: React.FC<ChipInputProps> = ({
         </AnimatePresence>
         
         {value.length < maxChips && (
-          <input
-            ref={inputRef}
-            id={`chip-input-${label}`}
-            type="text"
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={value.length === 0 ? placeholder : ''}
-            className={cn(
-              "flex-1 min-w-[120px] bg-transparent border-none p-1.5",
-              "text-sm text-calm-700 dark:text-calm-100",
-              "placeholder-calm-400/80 dark:placeholder-calm-400/60",
-              "focus:outline-none focus:ring-0"
-            )}
-          />
+          <div className="flex items-center gap-2 min-w-[200px]">
+            <Plus size={16} className="text-slate-400 dark:text-slate-500" />
+            <input
+              ref={inputRef}
+              id={`chip-input-${label}`}
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={value.length === 0 ? placeholder : 'Add another...'}
+              className="flex-1 bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm"
+            />
+          </div>
         )}
       </div>
       
-      <div className="flex justify-between mt-2 text-xs">
+      <div className="flex justify-between mt-3 text-sm">
         {helperText && (
-          <span className="text-calm-600 dark:text-calm-400">{helperText}</span>
+          <span className="text-slate-600 dark:text-slate-400">{helperText}</span>
         )}
         <span className={cn(
-          "ml-auto",
-          value.length >= maxChips ? "text-calm-500 dark:text-calm-400" : "text-calm-400 dark:text-calm-500"
+          "ml-auto font-medium",
+          value.length >= maxChips ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
         )}>
           {value.length}/{maxChips}
         </span>
