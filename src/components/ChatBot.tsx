@@ -12,6 +12,7 @@ interface Message {
   timestamp: Date
   isError?: boolean
   isFallback?: boolean
+  isApiKeyMissing?: boolean
 }
 
 interface ChatBotProps {
@@ -126,14 +127,17 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
           type: 'bot',
           content: response.response,
           timestamp: new Date(),
-          isFallback: response.fallback || false
+          isFallback: response.fallback || false,
+          isApiKeyMissing: response.error === 'AI API key missing'
         }
         setMessages(prev => [...prev, botMessage])
         
         // Update connection status based on response
-        if (response.fallback) {
+        if (response.error === 'AI API key missing') {
+          setConnectionStatus('offline')
+        } else if (response.fallback) {
           setConnectionStatus('fallback')
-        } else {
+        } else if (response.success !== false) {
           setConnectionStatus('connected')
         }
       } else {
@@ -162,18 +166,16 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       } else if (userInput.includes('relationship') || userInput.includes('friend') || userInput.includes('family')) {
         fallbackContent = "Relationships are such an important part of our lives. What's happening in your relationships that you'd like to explore? Sometimes understanding our own needs helps us connect better with others."
       } else {
-        fallbackContent = "I'm here to help you reflect and explore your thoughts. What's been on your mind lately? Whether it's about your goals, values, or current challenges, I'm here to listen and offer perspective."
+        fallbackContent = "Our AI helper is having a moment. Please try again soon."
       }
-      
-      // Add error context to fallback message
-      fallbackContent += "\n\n💡 I'm currently running in offline mode, but I'm still here to help you reflect!"
       
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
         content: fallbackContent,
         timestamp: new Date(),
-        isError: true
+        isError: true,
+        isApiKeyMissing: error.message === 'AI_API_KEY_MISSING'
       }
 
       setMessages(prev => [...prev, fallbackMessage])
@@ -286,7 +288,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   <AlertCircle size={14} className={connectionStatus === 'offline' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'} />
                   <p className={`text-xs ${connectionStatus === 'offline' ? 'text-red-800 dark:text-red-200' : 'text-yellow-800 dark:text-yellow-200'}`}>
                     {connectionStatus === 'offline' 
-                      ? 'Running in offline mode - responses may be limited'
+                      ? 'Our AI helper is having a moment - responses may be limited'
                       : 'Using fallback responses - some features may be limited'
                     }
                   </p>
@@ -313,13 +315,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                 >
                   {message.type === 'bot' && (
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      message.isError 
+                      message.isError || message.isApiKeyMissing
                         ? 'bg-amber-100 dark:bg-amber-900/30' 
                         : message.isFallback
                           ? 'bg-yellow-100 dark:bg-yellow-900/30'
                           : 'bg-blue-100 dark:bg-blue-900/30'
                     }`}>
-                      {message.isError ? (
+                      {message.isError || message.isApiKeyMissing ? (
                         <AlertCircle size={16} className="text-amber-600 dark:text-amber-400" />
                       ) : message.isFallback ? (
                         <Wifi size={16} className="text-yellow-600 dark:text-yellow-400" />
@@ -333,7 +335,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                     className={`max-w-[80%] p-3 rounded-2xl ${
                       message.type === 'user'
                         ? 'bg-blue-600 text-white rounded-br-md'
-                        : message.isError
+                        : message.isError || message.isApiKeyMissing
                           ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 rounded-bl-md border border-amber-200 dark:border-amber-800'
                           : message.isFallback
                             ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-100 rounded-bl-md border border-yellow-200 dark:border-yellow-800'
@@ -344,7 +346,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                     <p className={`text-xs mt-1 opacity-70 ${
                       message.type === 'user' 
                         ? 'text-white' 
-                        : message.isError
+                        : message.isError || message.isApiKeyMissing
                           ? 'text-amber-700 dark:text-amber-300'
                           : message.isFallback
                             ? 'text-yellow-700 dark:text-yellow-300'
@@ -352,6 +354,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       {message.isFallback && ' • Fallback'}
+                      {message.isApiKeyMissing && ' • Offline'}
                     </p>
                   </div>
 
