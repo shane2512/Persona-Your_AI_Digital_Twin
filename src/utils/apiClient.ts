@@ -54,27 +54,46 @@ class ClaudeAPIClient {
             'Content-Type': 'application/json'
           },
           timeout: 45000, // Increased timeout for Bolt environment
-          // Add retry logic for Bolt environment
-          validateStatus: (status) => {
-            return status < 500; // Accept 4xx errors but retry 5xx
-          }
+          // Accept all status codes to handle our custom error responses
+          validateStatus: () => true
         }
       );
 
       console.log('Claude reflection response:', response.data);
       
-      // Handle fallback responses from proxy
-      if (response.data?.fallback) {
-        throw new Error('Service temporarily unavailable - using fallback');
+      // Check for API key missing or other errors
+      if (response.data?.success === false || response.data?.error) {
+        if (response.data?.error === 'AI API key missing') {
+          throw new Error('AI_API_KEY_MISSING');
+        }
+        throw new Error(response.data?.error || 'Service temporarily unavailable');
+      }
+      
+      // Ensure we have advice in the response
+      if (!response.data?.advice) {
+        throw new Error('Invalid response format - missing advice');
       }
       
       return response.data;
     } catch (error: any) {
       console.error('Error generating reflection with Claude:', error);
       
+      // Handle specific API key missing error
+      if (error.message === 'AI_API_KEY_MISSING') {
+        throw new Error('AI_API_KEY_MISSING');
+      }
+      
       // Enhanced error handling with Bolt-specific logic
       if (error.response) {
         console.error('Response error:', error.response.status, error.response.data);
+        
+        // Check if the response contains our custom error format
+        if (error.response.data?.success === false) {
+          if (error.response.data?.error === 'AI API key missing') {
+            throw new Error('AI_API_KEY_MISSING');
+          }
+          throw new Error(error.response.data?.error || 'Service error');
+        }
         
         // If we're in Bolt and get a 503, try direct Netlify call as fallback
         if (this.isBoltEnvironment() && error.response.status >= 500) {
@@ -91,13 +110,26 @@ class ClaudeAPIClient {
               },
               {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 30000
+                timeout: 30000,
+                validateStatus: () => true
               }
             );
-            console.log('Direct Netlify call successful:', fallbackResponse.data);
+            console.log('Direct Netlify call response:', fallbackResponse.data);
+            
+            // Check fallback response for errors
+            if (fallbackResponse.data?.success === false || fallbackResponse.data?.error) {
+              if (fallbackResponse.data?.error === 'AI API key missing') {
+                throw new Error('AI_API_KEY_MISSING');
+              }
+              throw new Error(fallbackResponse.data?.error || 'Service temporarily unavailable');
+            }
+            
             return fallbackResponse.data;
-          } catch (fallbackError) {
+          } catch (fallbackError: any) {
             console.error('Direct Netlify call also failed:', fallbackError);
+            if (fallbackError.message === 'AI_API_KEY_MISSING') {
+              throw new Error('AI_API_KEY_MISSING');
+            }
           }
         }
         
@@ -134,17 +166,26 @@ class ClaudeAPIClient {
             'Content-Type': 'application/json'
           },
           timeout: 45000, // Increased timeout for Bolt environment
-          validateStatus: (status) => {
-            return status < 500; // Accept 4xx errors but retry 5xx
-          }
+          // Accept all status codes to handle our custom error responses
+          validateStatus: () => true
         }
       );
 
       console.log('Claude chat response:', response.data);
       
-      // Handle fallback responses from proxy
-      if (response.data?.fallback) {
-        return response.data; // Return fallback response as-is
+      // Check for API key missing or other errors
+      if (response.data?.success === false || response.data?.error) {
+        if (response.data?.error === 'AI API key missing') {
+          // Return fallback response for chat
+          return {
+            success: false,
+            response: "Our AI helper is having a moment. Please try again soon.",
+            error: 'AI API key missing',
+            fallback: true
+          };
+        }
+        // For other errors, return the fallback response if available
+        return response.data;
       }
       
       return response.data;
@@ -154,6 +195,19 @@ class ClaudeAPIClient {
       // Enhanced error handling with Bolt-specific logic
       if (error.response) {
         console.error('Claude chat response error:', error.response.status, error.response.data);
+        
+        // Check if the response contains our custom error format
+        if (error.response.data?.success === false) {
+          if (error.response.data?.error === 'AI API key missing') {
+            return {
+              success: false,
+              response: "Our AI helper is having a moment. Please try again soon.",
+              error: 'AI API key missing',
+              fallback: true
+            };
+          }
+          return error.response.data; // Return the fallback response
+        }
         
         // If we're in Bolt and get a 503, try direct Netlify call as fallback
         if (this.isBoltEnvironment() && error.response.status >= 500) {
@@ -167,24 +221,39 @@ class ClaudeAPIClient {
               },
               {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 30000
+                timeout: 30000,
+                validateStatus: () => true
               }
             );
-            console.log('Direct Netlify Claude chat call successful:', fallbackResponse.data);
+            console.log('Direct Netlify Claude chat call response:', fallbackResponse.data);
+            
+            // Check fallback response for errors
+            if (fallbackResponse.data?.success === false || fallbackResponse.data?.error) {
+              if (fallbackResponse.data?.error === 'AI API key missing') {
+                return {
+                  success: false,
+                  response: "Our AI helper is having a moment. Please try again soon.",
+                  error: 'AI API key missing',
+                  fallback: true
+                };
+              }
+              return fallbackResponse.data; // Return the fallback response
+            }
+            
             return fallbackResponse.data;
-          } catch (fallbackError) {
+          } catch (fallbackError: any) {
             console.error('Direct Netlify Claude chat call also failed:', fallbackError);
           }
         }
-        
-        throw new Error(`Claude Chat API Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`);
-      } else if (error.request) {
-        console.error('Claude chat request error:', error.request);
-        throw new Error('Network error: Unable to reach Claude chat server');
-      } else {
-        console.error('Claude chat setup error:', error.message);
-        throw new Error(`Claude chat request setup error: ${error.message}`);
       }
+      
+      // Return a generic fallback response for any unhandled errors
+      return {
+        success: false,
+        response: "Our AI helper is having a moment. Please try again soon.",
+        error: 'Service temporarily unavailable',
+        fallback: true
+      };
     }
   }
 
@@ -200,23 +269,37 @@ class ClaudeAPIClient {
           const testResponse = await axios.post(
             this.getEndpoint('chat'),
             { message: 'Health check' },
-            { timeout: 10000 }
+            { timeout: 10000, validateStatus: () => true }
           );
-          return { healthy: true, method: 'proxy', response: testResponse.data };
+          
+          if (testResponse.data?.success !== false) {
+            return { healthy: true, method: 'proxy', response: testResponse.data };
+          } else {
+            throw new Error('Proxy returned error response');
+          }
         } catch (proxyError) {
           console.log('Proxy health check failed, trying direct...');
           // Try direct as fallback
           const directResponse = await axios.post(
             'https://persona-mirror-ai.netlify.app/.netlify/functions/chat',
             { message: 'Health check' },
-            { timeout: 10000 }
+            { timeout: 10000, validateStatus: () => true }
           );
-          return { healthy: true, method: 'direct', response: directResponse.data };
+          
+          if (directResponse.data?.success !== false) {
+            return { healthy: true, method: 'direct', response: directResponse.data };
+          } else {
+            throw new Error('Direct call returned error response');
+          }
         }
       } else {
         // For production, use normal endpoint
         const testResponse = await this.sendChatMessage('Health check');
-        return { healthy: true, method: 'normal', response: testResponse };
+        if (testResponse?.success !== false) {
+          return { healthy: true, method: 'normal', response: testResponse };
+        } else {
+          throw new Error('Health check returned error response');
+        }
       }
     } catch (error) {
       console.error('Claude API health check failed:', error);
