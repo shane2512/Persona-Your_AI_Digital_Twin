@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send, Bot, User, Loader2, Sparkles, AlertCircle, Wifi, WifiOff } from 'lucide-react'
+import { X, Send, Bot, User, Loader2, Sparkles, AlertCircle, Wifi, WifiOff, Zap } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { claudeAPI } from '../utils/apiClient'
@@ -12,7 +12,7 @@ interface Message {
   timestamp: Date
   isError?: boolean
   isFallback?: boolean
-  isApiKeyMissing?: boolean
+  provider?: string
 }
 
 interface ChatBotProps {
@@ -25,7 +25,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     {
       id: '1',
       type: 'bot',
-      content: "Hello! I'm Claude, your AI reflection assistant. I can help you explore your thoughts, discuss your reflections, and provide guidance based on your personal journey. What would you like to talk about?",
+      content: "Hello! I'm your AI reflection assistant. I can help you explore your thoughts, discuss your reflections, and provide guidance based on your personal journey. What would you like to talk about?",
       timestamp: new Date()
     }
   ])
@@ -63,13 +63,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       if (health.healthy) {
         setConnectionStatus('connected')
         setConnectionMethod(health.method || 'unknown')
-        console.log(`Claude API connected via ${health.method}`)
+        console.log(`AI API connected via ${health.method}`)
       } else {
         setConnectionStatus('offline')
         setConnectionMethod('')
       }
     } catch (error) {
-      console.error('Claude health check error:', error)
+      console.error('AI health check error:', error)
       setConnectionStatus('offline')
       setConnectionMethod('')
     }
@@ -115,7 +115,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
     setIsLoading(true)
 
     try {
-      console.log('Sending message to Claude...')
+      console.log('Sending message to AI...')
       const response = await claudeAPI.sendChatMessage(
         userMessage.content,
         userReflections.slice(0, 3) // Send recent reflections for context
@@ -128,23 +128,21 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
           content: response.response,
           timestamp: new Date(),
           isFallback: response.fallback || false,
-          isApiKeyMissing: response.error === 'AI API key missing'
+          provider: response.provider || 'AI Assistant'
         }
         setMessages(prev => [...prev, botMessage])
         
         // Update connection status based on response
-        if (response.error === 'AI API key missing') {
-          setConnectionStatus('offline')
-        } else if (response.fallback) {
+        if (response.fallback) {
           setConnectionStatus('fallback')
         } else if (response.success !== false) {
           setConnectionStatus('connected')
         }
       } else {
-        throw new Error('No response from Claude')
+        throw new Error('No response from AI')
       }
     } catch (error: any) {
-      console.error('Error getting Claude response:', error)
+      console.error('Error getting AI response:', error)
       setConnectionStatus('offline')
       
       // Provide contextual fallback responses based on user input
@@ -166,7 +164,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       } else if (userInput.includes('relationship') || userInput.includes('friend') || userInput.includes('family')) {
         fallbackContent = "Relationships are such an important part of our lives. What's happening in your relationships that you'd like to explore? Sometimes understanding our own needs helps us connect better with others."
       } else {
-        fallbackContent = "Our AI helper is having a moment. Please try again soon."
+        fallbackContent = "I'm here to help you reflect and explore your thoughts. What's been on your mind lately?"
       }
       
       const fallbackMessage: Message = {
@@ -175,7 +173,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         content: fallbackContent,
         timestamp: new Date(),
         isError: true,
-        isApiKeyMissing: error.message === 'AI_API_KEY_MISSING'
+        provider: 'Fallback Assistant'
       }
 
       setMessages(prev => [...prev, fallbackMessage])
@@ -203,10 +201,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
 
   const getStatusText = () => {
     switch (connectionStatus) {
-      case 'connected': return connectionMethod ? `Claude Connected (${connectionMethod})` : 'Claude Connected'
+      case 'connected': return connectionMethod ? `AI Connected (${connectionMethod})` : 'AI Connected'
       case 'fallback': return 'Fallback Mode'
       case 'offline': return 'Offline Mode'
-      case 'checking': return 'Connecting to Claude...'
+      case 'checking': return 'Connecting to AI...'
       default: return 'Unknown'
     }
   }
@@ -218,6 +216,16 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
       case 'offline': return <WifiOff size={12} className="text-red-400" />
       case 'checking': return <Loader2 size={12} className="text-blue-400 animate-spin" />
       default: return <AlertCircle size={12} className="text-gray-400" />
+    }
+  }
+
+  const getProviderIcon = (provider?: string) => {
+    if (provider?.includes('Claude')) {
+      return <Sparkles size={16} className="text-blue-600 dark:text-blue-400" />
+    } else if (provider?.includes('Gemini')) {
+      return <Zap size={16} className="text-purple-600 dark:text-purple-400" />
+    } else {
+      return <Bot size={16} className="text-blue-600 dark:text-blue-400" />
     }
   }
 
@@ -253,7 +261,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   <Sparkles size={18} />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Claude AI Assistant</h3>
+                  <h3 className="font-semibold">AI Assistant</h3>
                   <div className="flex items-center gap-2">
                     {getStatusIcon()}
                     <p className="text-xs opacity-90">{getStatusText()}</p>
@@ -288,7 +296,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   <AlertCircle size={14} className={connectionStatus === 'offline' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'} />
                   <p className={`text-xs ${connectionStatus === 'offline' ? 'text-red-800 dark:text-red-200' : 'text-yellow-800 dark:text-yellow-200'}`}>
                     {connectionStatus === 'offline' 
-                      ? 'Our AI helper is having a moment - responses may be limited'
+                      ? 'AI assistant is having a moment - responses may be limited'
                       : 'Using fallback responses - some features may be limited'
                     }
                   </p>
@@ -315,18 +323,16 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                 >
                   {message.type === 'bot' && (
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      message.isError || message.isApiKeyMissing
+                      message.isError
                         ? 'bg-amber-100 dark:bg-amber-900/30' 
                         : message.isFallback
                           ? 'bg-yellow-100 dark:bg-yellow-900/30'
                           : 'bg-blue-100 dark:bg-blue-900/30'
                     }`}>
-                      {message.isError || message.isApiKeyMissing ? (
+                      {message.isError ? (
                         <AlertCircle size={16} className="text-amber-600 dark:text-amber-400" />
-                      ) : message.isFallback ? (
-                        <Wifi size={16} className="text-yellow-600 dark:text-yellow-400" />
                       ) : (
-                        <Bot size={16} className="text-blue-600 dark:text-blue-400" />
+                        getProviderIcon(message.provider)
                       )}
                     </div>
                   )}
@@ -335,7 +341,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                     className={`max-w-[80%] p-3 rounded-2xl ${
                       message.type === 'user'
                         ? 'bg-blue-600 text-white rounded-br-md'
-                        : message.isError || message.isApiKeyMissing
+                        : message.isError
                           ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 rounded-bl-md border border-amber-200 dark:border-amber-800'
                           : message.isFallback
                             ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-100 rounded-bl-md border border-yellow-200 dark:border-yellow-800'
@@ -343,19 +349,30 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p className={`text-xs mt-1 opacity-70 ${
-                      message.type === 'user' 
-                        ? 'text-white' 
-                        : message.isError || message.isApiKeyMissing
-                          ? 'text-amber-700 dark:text-amber-300'
-                          : message.isFallback
-                            ? 'text-yellow-700 dark:text-yellow-300'
-                            : 'text-slate-500 dark:text-slate-400'
-                    }`}>
-                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {message.isFallback && ' • Fallback'}
-                      {message.isApiKeyMissing && ' • Offline'}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className={`text-xs opacity-70 ${
+                        message.type === 'user' 
+                          ? 'text-white' 
+                          : message.isError
+                            ? 'text-amber-700 dark:text-amber-300'
+                            : message.isFallback
+                              ? 'text-yellow-700 dark:text-yellow-300'
+                              : 'text-slate-500 dark:text-slate-400'
+                      }`}>
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {message.provider && message.type === 'bot' && (
+                        <p className={`text-xs opacity-70 ${
+                          message.isError
+                            ? 'text-amber-700 dark:text-amber-300'
+                            : message.isFallback
+                              ? 'text-yellow-700 dark:text-yellow-300'
+                              : 'text-slate-500 dark:text-slate-400'
+                        }`}>
+                          {message.provider}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {message.type === 'user' && (
@@ -374,7 +391,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-2xl rounded-bl-md">
                     <div className="flex items-center gap-2">
                       <Loader2 size={16} className="animate-spin text-blue-500" />
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Claude is thinking...</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">AI is thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -391,7 +408,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask Claude about your reflections..."
+                  placeholder="Ask about your reflections..."
                   className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-sm"
                   disabled={isLoading}
                 />
