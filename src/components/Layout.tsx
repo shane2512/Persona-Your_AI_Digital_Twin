@@ -51,6 +51,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
+  // Navigation function to go back to landing page
+  const navigateToLanding = () => {
+    // Trigger a page refresh to go back to the landing page
+    // This works with your current app structure
+    window.location.href = '/';
+  };
+
   return (
     <div 
       className="min-h-screen flex flex-col transition-all duration-700 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950"
@@ -73,25 +80,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
-            <motion.div 
+            <motion.button 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7 }}
-              className="flex items-center gap-4"
+              onClick={navigateToLanding}
+              className="flex items-center gap-4 hover:opacity-80 transition-opacity duration-300 cursor-pointer group"
             >
               <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-shadow duration-300">
                   <Brain className="w-6 h-6 text-white" />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full animate-pulse"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
                   Persona Mirror
                 </h1>
                 <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Your Digital Twin for Daily Decisions</p>
               </div>
-            </motion.div>
+            </motion.button>
             
             <div className="flex items-center gap-4">
               {!loading && (
