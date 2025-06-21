@@ -1,70 +1,70 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
-import { cn } from '../utils/cn'
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { cn } from '../utils/cn';
 
 interface AuthModalProps {
-  isOpen: boolean
-  onClose: () => void
-  mode: 'signin' | 'signup'
-  onModeChange: (mode: 'signin' | 'signup') => void
+  isOpen: boolean;
+  onClose: () => void;
+  mode: 'signin' | 'signup';
+  onModeChange: (mode: 'signin' | 'signup') => void;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChange }) => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const { signIn, signUp } = useAuth()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
     try {
       if (mode === 'signup') {
-        const { error } = await signUp(email, password, fullName)
-        if (error) throw error
-        onClose()
+        const { error } = await signUp(email, password, fullName);
+        if (error) throw error;
+        onClose();
       } else {
-        const { error } = await signIn(email, password)
-        if (error) throw error
-        onClose()
+        const { error } = await signIn(email, password);
+        if (error) throw error;
+        onClose();
       }
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const resetForm = () => {
-    setEmail('')
-    setPassword('')
-    setFullName('')
-    setError('')
-    setShowPassword(false)
-  }
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setError('');
+    setShowPassword(false);
+  };
 
   const handleClose = () => {
-    resetForm()
-    onClose()
-  }
+    resetForm();
+    onClose();
+  };
 
   const switchMode = (newMode: 'signin' | 'signup') => {
-    resetForm()
-    onModeChange(newMode)
-  }
+    resetForm();
+    onModeChange(newMode);
+  };
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -72,7 +72,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={handleClose}
           />
-          
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -189,7 +188,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
         </div>
       )}
     </AnimatePresence>
-  )
-}
+  );
 
-export default AuthModal
+  return createPortal(modalContent, document.body);
+};
+
+export default AuthModal;
