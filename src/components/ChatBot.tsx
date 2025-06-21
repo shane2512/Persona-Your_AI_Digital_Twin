@@ -227,10 +227,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-md h-[600px] bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-calm-100 dark:border-calm-400/30 flex flex-col overflow-hidden"
+            className="w-full max-w-md h-[600px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-calm-500 to-calm-400 dark:from-calm-600 dark:to-calm-500 text-white flex items-center justify-between">
+            <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                   <Sparkles size={18} />
@@ -302,14 +302,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                         ? 'bg-amber-100 dark:bg-amber-900/30' 
                         : message.isFallback
                           ? 'bg-yellow-100 dark:bg-yellow-900/30'
-                          : 'bg-calm-100 dark:bg-calm-900/30'
+                          : 'bg-blue-100 dark:bg-blue-900/30'
                     }`}>
                       {message.isError ? (
                         <AlertCircle size={16} className="text-amber-600 dark:text-amber-400" />
                       ) : message.isFallback ? (
                         <Wifi size={16} className="text-yellow-600 dark:text-yellow-400" />
                       ) : (
-                        <Bot size={16} className="text-calm-600 dark:text-calm-400" />
+                        <Bot size={16} className="text-blue-600 dark:text-blue-400" />
                       )}
                     </div>
                   )}
@@ -317,12 +317,12 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   <div
                     className={`max-w-[80%] p-3 rounded-2xl ${
                       message.type === 'user'
-                        ? 'bg-calm-500 text-white rounded-br-md'
+                        ? 'bg-blue-600 text-white rounded-br-md'
                         : message.isError
                           ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 rounded-bl-md border border-amber-200 dark:border-amber-800'
                           : message.isFallback
                             ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-100 rounded-bl-md border border-yellow-200 dark:border-yellow-800'
-                            : 'bg-surface-100 dark:bg-surface-700 text-surface-900 dark:text-surface-100 rounded-bl-md'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-bl-md'
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -333,7 +333,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                           ? 'text-amber-700 dark:text-amber-300'
                           : message.isFallback
                             ? 'text-yellow-700 dark:text-yellow-300'
-                            : 'text-surface-500 dark:text-surface-400'
+                            : 'text-slate-500 dark:text-slate-400'
                     }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       {message.isFallback && ' • Fallback'}
@@ -341,7 +341,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   {message.type === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-calm-500 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
                       <User size={16} className="text-white" />
                     </div>
                   )}
@@ -350,13 +350,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
 
               {isLoading && (
                 <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 rounded-full bg-calm-100 dark:bg-calm-900/30 flex items-center justify-center flex-shrink-0">
-                    <Bot size={16} className="text-calm-600 dark:text-calm-400" />
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                    <Bot size={16} className="text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div className="bg-surface-100 dark:bg-surface-700 p-3 rounded-2xl rounded-bl-md">
+                  <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-2xl rounded-bl-md">
                     <div className="flex items-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-calm-500" />
-                      <span className="text-sm text-surface-600 dark:text-surface-400">Thinking...</span>
+                      <Loader2 size={16} className="animate-spin text-blue-500" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -366,7 +366,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-surface-200 dark:border-surface-700">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -374,13 +374,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask me anything about your reflections..."
-                  className="flex-1 px-4 py-2 bg-surface-100 dark:bg-surface-700 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-calm-500/30 text-sm"
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-sm"
                   disabled={isLoading}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!inputValue.trim() || isLoading}
-                  className="p-2 bg-calm-500 hover:bg-calm-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
+                  className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
                 >
                   <Send size={18} />
                 </button>

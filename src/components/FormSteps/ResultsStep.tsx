@@ -241,23 +241,33 @@ Trust yourself - you have the wisdom to make the right choice.`;
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-8"
     >
       <div className="text-center mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-primary-600 dark:text-primary-400 mb-3">
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4"
+        >
           Your Personalized Reflection
-        </h2>
-        <p className="text-surface-600 dark:text-surface-400 max-w-2xl mx-auto">
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto"
+        >
           Based on your values, goals, struggles, and vision of your ideal self.
-        </p>
+        </motion.p>
       </div>
 
       <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">How are you feeling right now?</label>
+        <label className="block text-lg font-semibold mb-3 text-slate-900 dark:text-white">How are you feeling right now?</label>
         <select
           value={mood}
           onChange={(e) => setMood(e.target.value)}
-          className="input"
+          className="input text-lg"
         >
           <option value="">Select your mood...</option>
           <option value="optimistic">😊 Optimistic</option>
@@ -270,16 +280,16 @@ Trust yourself - you have the wisdom to make the right choice.`;
 
       <div className="card">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-lg font-medium text-primary-600 dark:text-primary-400">Generating your personalized reflection...</p>
-            <p className="text-sm text-surface-500 dark:text-surface-400 mt-2">This may take a moment as we analyze your inputs.</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-6"></div>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Generating your personalized reflection...</h3>
+            <p className="text-lg text-slate-600 dark:text-slate-400">This may take a moment as we analyze your inputs.</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {error && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
-                <p className="text-amber-800 dark:text-amber-200 text-sm">{error}</p>
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 mb-6">
+                <p className="text-amber-800 dark:text-amber-200">{error}</p>
               </div>
             )}
             
@@ -290,33 +300,33 @@ Trust yourself - you have the wisdom to make the right choice.`;
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="font-serif"
+                  className="mb-6"
                 >
                   {paragraph.startsWith('**') ? (
-                    <div className="font-bold text-lg mb-2 text-primary-600 dark:text-primary-400">
+                    <h3 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">
                       {paragraph.replace(/\*\*/g, '')}
-                    </div>
+                    </h3>
                   ) : (
-                    <p className="mb-4">{paragraph}</p>
+                    <p className="text-lg leading-relaxed">{paragraph}</p>
                   )}
                 </motion.div>
               ))}
             </div>
 
-            <div className="border-t border-surface-200 dark:border-surface-700 pt-4 mt-6">
-              <div className="flex items-center gap-2 text-surface-600 dark:text-surface-400">
-                <Quote size={16} />
-                <p className="italic text-sm">{quote.text}</p>
+            <div className="border-t border-slate-200 dark:border-slate-700 pt-6 mt-8">
+              <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400 mb-2">
+                <Quote size={20} />
+                <p className="italic text-lg">{quote.text}</p>
               </div>
-              <p className="text-right text-sm text-surface-500 dark:text-surface-400">- {quote.author}</p>
+              <p className="text-right text-slate-500 dark:text-slate-400">- {quote.author}</p>
             </div>
             
-            <div className="flex flex-wrap gap-3 pt-4 border-t border-surface-200 dark:border-surface-700">
+            <div className="flex flex-wrap gap-4 pt-6 border-t border-slate-200 dark:border-slate-700">
               <button
                 onClick={copyToClipboard}
                 className={cn(
-                  "btn btn-outline flex items-center gap-2",
-                  copied && "bg-success-50 text-success-700 border-success-300 dark:bg-success-900/20 dark:text-success-300 dark:border-success-800"
+                  "btn btn-secondary flex items-center gap-2",
+                  copied && "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
                 )}
               >
                 {copied ? "Copied!" : (
@@ -329,7 +339,7 @@ Trust yourself - you have the wisdom to make the right choice.`;
               
               <button
                 onClick={downloadAsText}
-                className="btn btn-outline flex items-center gap-2"
+                className="btn btn-secondary flex items-center gap-2"
               >
                 <Download size={16} />
                 Download
@@ -338,7 +348,7 @@ Trust yourself - you have the wisdom to make the right choice.`;
               {navigator.share && (
                 <button
                   onClick={shareAdvice}
-                  className="btn btn-outline flex items-center gap-2"
+                  className="btn btn-secondary flex items-center gap-2"
                 >
                   <Share2 size={16} />
                   Share
@@ -353,7 +363,7 @@ Trust yourself - you have the wisdom to make the right choice.`;
         <div className="mt-8">
           <button
             onClick={() => setShowPastAdvice(!showPastAdvice)}
-            className="btn btn-outline w-full flex items-center justify-between"
+            className="btn btn-secondary w-full flex items-center justify-between"
           >
             <span>Compare with Past Reflections</span>
             {showPastAdvice ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -366,17 +376,17 @@ Trust yourself - you have the wisdom to make the right choice.`;
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="mt-4 space-y-4"
+                className="mt-6 space-y-4"
               >
                 {pastAdvice.map((reflection) => (
                   <div key={reflection.id} className="card">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="text-sm font-medium">
+                        <p className="text-lg font-semibold text-slate-900 dark:text-white">
                           {new Date(reflection.created_at || reflection.date).toLocaleDateString()}
                         </p>
                         {reflection.mood && (
-                          <p className="text-sm text-surface-500 dark:text-surface-400">
+                          <p className="text-slate-600 dark:text-slate-400">
                             Mood: {reflection.mood}
                           </p>
                         )}
@@ -384,10 +394,10 @@ Trust yourself - you have the wisdom to make the right choice.`;
                     </div>
                     <div className="prose prose-sm dark:prose-invert">
                       {(reflection.ai_advice || reflection.advice).split('\n\n').slice(0, 2).map((paragraph, i) => (
-                        <p key={i} className="font-serif">{paragraph}</p>
+                        <p key={i} className="mb-3">{paragraph}</p>
                       ))}
                       {(reflection.ai_advice || reflection.advice).split('\n\n').length > 2 && (
-                        <p className="text-surface-500 dark:text-surface-400">...</p>
+                        <p className="text-slate-500 dark:text-slate-400">...</p>
                       )}
                     </div>
                   </div>
@@ -398,12 +408,12 @@ Trust yourself - you have the wisdom to make the right choice.`;
         </div>
       )}
       
-      <div className="flex justify-between mt-8">
+      <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-200/50 dark:border-slate-700/50">
         <motion.button
           whileTap={{ scale: 0.97 }}
           type="button"
           onClick={onBack}
-          className="btn btn-outline flex items-center gap-2"
+          className="btn btn-secondary flex items-center gap-2"
         >
           Edit Inputs
         </motion.button>
