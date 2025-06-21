@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Layout from './components/Layout';
+import LandingPage from './components/LandingPage';
+import ReflectionInput from './components/ReflectionInput';
 import FormStepper from './components/FormStepper';
 import CoreValuesStep from './components/FormSteps/CoreValuesStep';
 import LifeGoalsStep from './components/FormSteps/LifeGoalsStep';
@@ -10,7 +12,10 @@ import DecisionStep from './components/FormSteps/DecisionStep';
 import ResultsStep from './components/FormSteps/ResultsStep';
 import { FormStep, UserData } from './types';
 
+type AppView = 'landing' | 'reflection' | 'form';
+
 function App() {
+  const [currentView, setCurrentView] = useState<AppView>('landing');
   const [currentStep, setCurrentStep] = useState<FormStep>('values');
   const [completedSteps, setCompletedSteps] = useState<FormStep[]>([]);
   
@@ -84,69 +89,98 @@ function App() {
     });
     setCurrentStep('values');
     setCompletedSteps([]);
+    setCurrentView('landing');
+  };
+
+  const startReflection = () => {
+    setCurrentView('form');
+    setCurrentStep('values');
+    setCompletedSteps([]);
   };
 
   return (
     <Layout>
-      <FormStepper currentStep={currentStep} completedSteps={completedSteps} />
-      
       <AnimatePresence mode="wait">
-        {currentStep === 'values' && (
-          <CoreValuesStep 
-            key="values-step"
-            userData={userData} 
-            updateUserData={updateUserData} 
-            onNext={handleNext} 
+        {currentView === 'landing' && (
+          <LandingPage 
+            key="landing"
+            onGetStarted={() => setCurrentView('reflection')}
+            onStartReflection={startReflection}
           />
         )}
         
-        {currentStep === 'goals' && (
-          <LifeGoalsStep 
-            key="goals-step"
-            userData={userData} 
-            updateUserData={updateUserData} 
-            onNext={handleNext}
-            onBack={handleBack}
+        {currentView === 'reflection' && (
+          <ReflectionInput 
+            key="reflection"
+            onStartReflection={startReflection}
+            onBack={() => setCurrentView('landing')}
           />
         )}
         
-        {currentStep === 'struggles' && (
-          <CurrentStrugglesStep 
-            key="struggles-step"
-            userData={userData} 
-            updateUserData={updateUserData} 
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
-        
-        {currentStep === 'idealSelf' && (
-          <IdealSelfStep 
-            key="ideal-self-step"
-            userData={userData} 
-            updateUserData={updateUserData} 
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
-        
-        {currentStep === 'decision' && (
-          <DecisionStep 
-            key="decision-step"
-            userData={userData} 
-            updateUserData={updateUserData} 
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        )}
-        
-        {currentStep === 'results' && (
-          <ResultsStep 
-            key="results-step"
-            userData={userData}
-            onBack={handleBack}
-            onReset={handleReset}
-          />
+        {currentView === 'form' && (
+          <div key="form">
+            <FormStepper currentStep={currentStep} completedSteps={completedSteps} />
+            
+            <AnimatePresence mode="wait">
+              {currentStep === 'values' && (
+                <CoreValuesStep 
+                  key="values-step"
+                  userData={userData} 
+                  updateUserData={updateUserData} 
+                  onNext={handleNext} 
+                />
+              )}
+              
+              {currentStep === 'goals' && (
+                <LifeGoalsStep 
+                  key="goals-step"
+                  userData={userData} 
+                  updateUserData={updateUserData} 
+                  onNext={handleNext}
+                  onBack={handleBack}
+                />
+              )}
+              
+              {currentStep === 'struggles' && (
+                <CurrentStrugglesStep 
+                  key="struggles-step"
+                  userData={userData} 
+                  updateUserData={updateUserData} 
+                  onNext={handleNext}
+                  onBack={handleBack}
+                />
+              )}
+              
+              {currentStep === 'idealSelf' && (
+                <IdealSelfStep 
+                  key="ideal-self-step"
+                  userData={userData} 
+                  updateUserData={updateUserData} 
+                  onNext={handleNext}
+                  onBack={handleBack}
+                />
+              )}
+              
+              {currentStep === 'decision' && (
+                <DecisionStep 
+                  key="decision-step"
+                  userData={userData} 
+                  updateUserData={updateUserData} 
+                  onNext={handleNext}
+                  onBack={handleBack}
+                />
+              )}
+              
+              {currentStep === 'results' && (
+                <ResultsStep 
+                  key="results-step"
+                  userData={userData}
+                  onBack={handleBack}
+                  onReset={handleReset}
+                />
+              )}
+            </AnimatePresence>
+          </div>
         )}
       </AnimatePresence>
     </Layout>
