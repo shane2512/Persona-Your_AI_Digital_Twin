@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote, AlertCircle } from 'lucide-react';
+import { Download, RefreshCw, Share2, ChevronDown, ChevronUp, Quote, AlertCircle, Sparkles, Zap } from 'lucide-react';
 import { UserData } from '../../types';
 import { cn } from '../../utils/cn';
 import { getRandomQuote } from '../../utils/quotes';
@@ -18,7 +18,8 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
   const [advice, setAdvice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isApiKeyMissing, setIsApiKeyMissing] = useState(false);
+  const [aiProvider, setAiProvider] = useState<string>('');
+  const [isFallback, setIsFallback] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showPastAdvice, setShowPastAdvice] = useState(false);
   const [pastAdvice, setPastAdvice] = useState<any[]>([]);
@@ -31,14 +32,16 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
       try {
         setLoading(true);
         setError(null);
-        setIsApiKeyMissing(false);
+        setIsFallback(false);
         
-        console.log('Generating reflection with Claude Sonnet 4 for user data:', userData);
+        console.log('Generating reflection with AI for user data:', userData);
         
         const response = await claudeAPI.generateReflection(userData);
         
         if (response && response.advice) {
           setAdvice(response.advice);
+          setAiProvider(response.provider || 'AI Assistant');
+          setIsFallback(response.fallback || false);
           
           // Save to Supabase if user is authenticated and Supabase is configured
           if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
@@ -79,81 +82,38 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
           throw new Error('Invalid response format');
         }
       } catch (err: any) {
-        console.error('Error fetching advice from Claude:', err);
+        console.error('Error fetching advice from AI:', err);
         
-        // Check for specific API key missing error
-        if (err.message === 'AI_API_KEY_MISSING') {
-          setIsApiKeyMissing(true);
-          setError('Our AI helper is having a moment. Please try again soon.');
-          
-          // Generate a basic fallback advice without AI
-          const fallbackAdvice = generateBasicFallbackAdvice(userData);
-          setAdvice(fallbackAdvice);
-          
-          // Save fallback advice
-          if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
-            try {
-              await supabase
-                .from('reflections')
-                .insert({
-                  user_id: user.id,
-                  core_values: userData.coreValues,
-                  life_goals: userData.lifeGoals,
-                  current_struggles: userData.currentStruggles,
-                  ideal_self: userData.idealSelf,
-                  current_decision: userData.currentDecision,
-                  ai_advice: fallbackAdvice,
-                  mood,
-                  quote_text: quote.text,
-                  quote_author: quote.author
-                });
-            } catch (saveError) {
-              console.error('Error saving fallback to Supabase:', saveError);
-              saveToLocalStorage(fallbackAdvice);
-            }
-          } else {
+        // Generate a basic fallback advice
+        const fallbackAdvice = generateBasicFallbackAdvice(userData);
+        setAdvice(fallbackAdvice);
+        setAiProvider('Fallback Guidance System');
+        setIsFallback(true);
+        setError('Our AI assistant is having a moment, but we\'ve created personalized guidance for you.');
+        
+        // Save fallback advice
+        if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+          try {
+            await supabase
+              .from('reflections')
+              .insert({
+                user_id: user.id,
+                core_values: userData.coreValues,
+                life_goals: userData.lifeGoals,
+                current_struggles: userData.currentStruggles,
+                ideal_self: userData.idealSelf,
+                current_decision: userData.currentDecision,
+                ai_advice: fallbackAdvice,
+                mood,
+                quote_text: quote.text,
+                quote_author: quote.author
+              });
+          } catch (saveError) {
+            console.error('Error saving fallback to Supabase:', saveError);
             saveToLocalStorage(fallbackAdvice);
           }
         } else {
-          // Fallback advice if API fails for other reasons
-          const fallbackAdvice = generateFallbackAdvice(userData);
-          setAdvice(fallbackAdvice);
-          
-          let errorMsg = 'Our AI helper is having a moment. Please try again soon.';
-          if (err.message?.includes('401') || err.message?.includes('API Error (401)')) {
-            errorMsg = 'Our AI helper is having a moment. Please try again soon.';
-          } else if (err.message?.includes('429') || err.message?.includes('rate limit')) {
-            errorMsg = 'Our AI helper is busy right now. Please try again in a few minutes.';
-          } else if (err.message?.includes('timeout') || err.message?.includes('Network error')) {
-            errorMsg = 'Connection timeout. Please check your internet and try again.';
-          }
-          
-          setError(errorMsg);
-          
-          // Save fallback advice
-          if (user && import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
-            try {
-              await supabase
-                .from('reflections')
-                .insert({
-                  user_id: user.id,
-                  core_values: userData.coreValues,
-                  life_goals: userData.lifeGoals,
-                  current_struggles: userData.currentStruggles,
-                  ideal_self: userData.idealSelf,
-                  current_decision: userData.currentDecision,
-                  ai_advice: fallbackAdvice,
-                  mood,
-                  quote_text: quote.text,
-                  quote_author: quote.author
-                });
-            } catch (saveError) {
-              console.error('Error saving fallback to Supabase:', saveError);
-              saveToLocalStorage(fallbackAdvice);
-            }
-          } else {
-            saveToLocalStorage(fallbackAdvice);
-          }
+          saveToLocalStorage(fallbackAdvice);
         }
         
         await loadPastReflections();
@@ -231,35 +191,7 @@ When facing your current decision about "${currentDecision}", consider:
 
 Trust yourself - you have the wisdom to make the right choice.
 
-*Note: This reflection was generated using our offline guidance system. For AI-powered insights, please try again later.*`;
-  };
-
-  const generateFallbackAdvice = (data: UserData): string => {
-    const { coreValues, lifeGoals, currentStruggles, idealSelf, currentDecision } = data;
-    
-    return `Based on your reflection, here are some insights:
-
-**Your Core Values**: ${coreValues.join(', ')}
-These values are your compass. When making decisions, ask yourself: "Which option best aligns with these principles?"
-
-**Your Goals**: ${lifeGoals.join(', ')}
-Break these down into smaller, actionable steps. Focus on progress, not perfection.
-
-**Current Challenges**: ${currentStruggles.join(', ')}
-Remember that challenges are opportunities for growth. Consider how overcoming these obstacles will make you stronger.
-
-**Your Ideal Self**: 
-${idealSelf}
-
-This vision is powerful. Take one small action today that moves you closer to this version of yourself.
-
-**Decision Framework**:
-When facing your current decision about "${currentDecision}", consider:
-1. Which option aligns best with your core values?
-2. Which choice moves you closer to your ideal self?
-3. What would you regret not trying?
-
-Trust yourself - you have the wisdom to make the right choice.`;
+*Generated by Fallback Guidance System*`;
   };
 
   const copyToClipboard = async () => {
@@ -279,7 +211,7 @@ Trust yourself - you have the wisdom to make the right choice.`;
     
     const element = document.createElement('a');
     const file = new Blob([
-      `# Persona Mirror Reflection\n\nDate: ${new Date().toLocaleDateString()}\n\n${isApiKeyMissing ? 'Generated with offline guidance system' : 'Powered by Claude Sonnet 4'}\n\n${advice}\n\n---\n${quote.text}\n- ${quote.author}`
+      `# Persona Mirror Reflection\n\nDate: ${new Date().toLocaleDateString()}\n\n${aiProvider ? `Generated by: ${aiProvider}` : 'Powered by AI'}\n\n${advice}\n\n---\n${quote.text}\n- ${quote.author}`
     ], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = 'persona-mirror-reflection.txt';
@@ -298,6 +230,26 @@ Trust yourself - you have the wisdom to make the right choice.`;
       });
     } catch (err) {
       console.error('Error sharing:', err);
+    }
+  };
+
+  const getProviderIcon = () => {
+    if (aiProvider.includes('Claude')) {
+      return <Sparkles size={16} className="text-blue-500" />;
+    } else if (aiProvider.includes('Gemini')) {
+      return <Zap size={16} className="text-purple-500" />;
+    } else {
+      return <AlertCircle size={16} className="text-amber-500" />;
+    }
+  };
+
+  const getProviderColor = () => {
+    if (aiProvider.includes('Claude')) {
+      return 'text-blue-600 dark:text-blue-400';
+    } else if (aiProvider.includes('Gemini')) {
+      return 'text-purple-600 dark:text-purple-400';
+    } else {
+      return 'text-amber-600 dark:text-amber-400';
     }
   };
 
@@ -332,13 +284,11 @@ Trust yourself - you have the wisdom to make the right choice.`;
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mt-4 text-sm font-medium"
         >
-          {isApiKeyMissing ? (
-            <span className="text-amber-600 dark:text-amber-400">
-              ⚡ Generated with offline guidance system
-            </span>
-          ) : (
-            <span className="text-blue-600 dark:text-blue-400">
-              ✨ Powered by Claude Sonnet 4
+          {aiProvider && (
+            <span className={`flex items-center justify-center gap-2 ${getProviderColor()}`}>
+              {getProviderIcon()}
+              Generated by {aiProvider}
+              {isFallback && ' (Offline Mode)'}
             </span>
           )}
         </motion.div>
@@ -371,17 +321,17 @@ Trust yourself - you have the wisdom to make the right choice.`;
           <div className="space-y-8">
             {error && (
               <div className={`rounded-2xl p-6 mb-6 border ${
-                isApiKeyMissing 
+                isFallback 
                   ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
                   : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
               }`}>
                 <div className="flex items-center gap-3 mb-2">
-                  <AlertCircle size={20} className={isApiKeyMissing ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'} />
-                  <p className={`font-medium ${isApiKeyMissing ? 'text-amber-800 dark:text-amber-200' : 'text-blue-800 dark:text-blue-200'}`}>
+                  <AlertCircle size={20} className={isFallback ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'} />
+                  <p className={`font-medium ${isFallback ? 'text-amber-800 dark:text-amber-200' : 'text-blue-800 dark:text-blue-200'}`}>
                     {error}
                   </p>
                 </div>
-                {isApiKeyMissing && (
+                {isFallback && (
                   <p className="text-sm text-amber-700 dark:text-amber-300">
                     Don't worry - we've created a personalized reflection based on your inputs below.
                   </p>
