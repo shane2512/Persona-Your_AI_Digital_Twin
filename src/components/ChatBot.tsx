@@ -222,12 +222,27 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-end p-4">
+        <div 
+          className="fixed inset-0 flex items-end justify-end p-4"
+          style={{ 
+            zIndex: 99998,
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="w-full max-w-md h-[600px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden"
+            style={{ 
+              position: 'relative',
+              zIndex: 1,
+              isolation: 'isolate'
+            }}
           >
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-between">

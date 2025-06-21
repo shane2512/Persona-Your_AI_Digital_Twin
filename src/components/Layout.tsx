@@ -52,16 +52,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col transition-all duration-700 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950">
+    <div 
+      className="min-h-screen flex flex-col transition-all duration-700 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950"
+      style={{ 
+        position: 'relative',
+        isolation: 'isolate'
+      }}
+    >
       {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-cyan-400/20 to-blue-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-indigo-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
       
       {/* Header */}
-      <header className="relative z-10 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0">
+      <header 
+        className="relative backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0"
+        style={{ zIndex: 40 }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <motion.div 
@@ -126,16 +135,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
       
       {/* Main Content */}
-    <main className="relative flex-1 z-10">
-  <div className="max-w-7xl mx-auto px-6 py-16">
-    {/* Removed hero section as requested */}
-
-    {/* Main Content Area */}
-    <div className="max-w-4xl mx-auto">
-      {children}
-    </div>
-  </div>
-</main>
+      <main className="relative flex-1" style={{ zIndex: 10 }}>
+        <div className="max-w-7xl mx-auto px-6 py-16">
+          {/* Main Content Area */}
+          <div className="max-w-4xl mx-auto">
+            {children}
+          </div>
+        </div>
+      </main>
 
       {/* Floating Chat Button */}
       <motion.button
@@ -143,8 +150,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1, duration: 0.3 }}
         onClick={handleChatOpen}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl shadow-2xl shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
+        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl shadow-2xl shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-110 transition-all duration-300 flex items-center justify-center group"
         aria-label="Open AI Chat Assistant"
+        style={{ zIndex: 50 }}
       >
         <MessageCircle size={24} className="group-hover:scale-110 transition-transform duration-200" />
         
@@ -159,7 +167,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </motion.button>
       
       {/* Footer */}
-      <footer className="relative z-10 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-t border-slate-200/50 dark:border-slate-700/50">
+      <footer 
+        className="relative backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-t border-slate-200/50 dark:border-slate-700/50"
+        style={{ zIndex: 40 }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="text-center">
             <p className="text-sm text-slate-600 dark:text-slate-400">
