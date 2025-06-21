@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@anthropic-ai/sdk": "^0.27.3",
     "@netlify/functions": "^2.8.2",
     "@supabase/supabase-js": "^2.50.0",
     "axios": "^1.7.7",
