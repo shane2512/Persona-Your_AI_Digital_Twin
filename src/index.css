@@ -22,7 +22,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold text-sm tracking-tight
+    @apply inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base tracking-tight
            transition-all duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 
            focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed
            hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl;
@@ -44,40 +44,40 @@
   }
   
   .card {
-    @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-8
+    @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8
            border border-slate-200/50 dark:border-slate-700/50 
            shadow-xl hover:shadow-2xl
            transition-all duration-500;
   }
   
   .input {
-    @apply w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl
+    @apply w-full px-3 sm:px-4 py-2 sm:py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl
            border border-slate-200 dark:border-slate-700 
            shadow-lg focus:shadow-xl
            focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500
            placeholder-slate-400 dark:placeholder-slate-500
            text-slate-900 dark:text-white
-           transition-all duration-300;
+           transition-all duration-300 text-sm sm:text-base;
   }
   
   .textarea {
-    @apply input min-h-[120px] resize-y;
+    @apply input min-h-[80px] sm:min-h-[120px] resize-y;
   }
   
   .form-group {
-    @apply space-y-3;
+    @apply space-y-2 sm:space-y-3;
   }
 
   .glass-card {
     @apply bg-white/10 dark:bg-slate-800/40 backdrop-blur-xl
            border border-white/20 dark:border-slate-700/30
-           rounded-2xl shadow-2xl;
+           rounded-xl sm:rounded-2xl shadow-2xl;
   }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -210,4 +210,76 @@
 .dark .glass {
   background-color: rgba(17, 24, 39, 0.75);
   border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  .btn {
+    @apply px-4 py-2.5 text-sm;
+  }
+  
+  .card {
+    @apply p-4 rounded-xl;
+  }
+  
+  .input, .textarea {
+    @apply px-3 py-2.5 text-sm rounded-lg;
+  }
+  
+  /* Improve touch targets */
+  button, input, textarea, select {
+    @apply min-h-[44px];
+  }
+  
+  /* Better spacing on mobile */
+  .space-y-8 > * + * {
+    @apply mt-6;
+  }
+  
+  .space-y-12 > * + * {
+    @apply mt-8;
+  }
+  
+  .space-y-16 > * + * {
+    @apply mt-10;
+  }
+  
+  .space-y-24 > * + * {
+    @apply mt-12;
+  }
+}
+
+/* Tablet improvements */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .btn {
+    @apply px-5 py-3 text-base;
+  }
+  
+  .card {
+    @apply p-6 rounded-2xl;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Improve text readability on mobile */
+@media (max-width: 640px) {
+  h1 {
+    @apply text-3xl leading-tight;
+  }
+  
+  h2 {
+    @apply text-2xl leading-tight;
+  }
+  
+  h3 {
+    @apply text-xl leading-tight;
+  }
+  
+  p {
+    @apply text-base leading-relaxed;
+  }
 }
