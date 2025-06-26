@@ -178,8 +178,8 @@ If AI responses are not working:
 Feel free to open issues or submit pull requests. All contributions are welcome!
 
 ## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-MIT
 
 ---
 
