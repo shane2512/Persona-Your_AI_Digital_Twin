@@ -130,11 +130,25 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         userData,
         advice: adviceText,
         mood,
-        quote
+        quote,
+        // Add user-specific storage for non-authenticated users
+        userId: user?.id || 'guest'
       };
       
+      // Filter reflections by user if authenticated, otherwise keep all for guest
+      const userReflections = user 
+        ? savedReflections.filter((r: any) => r.userId === user.id)
+        : savedReflections.filter((r: any) => r.userId === 'guest');
+      
+      const updatedReflections = [newReflection, ...userReflections].slice(0, 10);
+      
+      // Merge with other users' reflections
+      const otherUsersReflections = savedReflections.filter((r: any) => 
+        user ? r.userId !== user.id : r.userId !== 'guest'
+      );
+      
       localStorage.setItem('personaMirrorReflections', 
-        JSON.stringify([newReflection, ...savedReflections].slice(0, 10)));
+        JSON.stringify([...updatedReflections, ...otherUsersReflections]));
     };
 
     const loadPastReflections = async () => {
@@ -152,13 +166,20 @@ const ResultsStep: React.FC<ResultsStepProps> = ({ userData, onBack, onReset }) 
         } catch (error) {
           console.error('Error loading reflections from Supabase:', error);
           // Fall back to localStorage
-          const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
-          setPastAdvice(savedReflections);
+          loadFromLocalStorage();
         }
       } else {
-        const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
-        setPastAdvice(savedReflections);
+        loadFromLocalStorage();
       }
+    };
+
+    const loadFromLocalStorage = () => {
+      const savedReflections = JSON.parse(localStorage.getItem('personaMirrorReflections') || '[]');
+      // Filter by user if authenticated, otherwise show guest reflections
+      const userReflections = user 
+        ? savedReflections.filter((r: any) => r.userId === user.id)
+        : savedReflections.filter((r: any) => r.userId === 'guest');
+      setPastAdvice(userReflections);
     };
 
     fetchAdvice();

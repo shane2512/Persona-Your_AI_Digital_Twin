@@ -46,11 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const handleChatOpen = () => {
-    if (!user) {
-      openAuthModal('signin');
-    } else {
-      setChatBotOpen(true);
-    }
+    setChatBotOpen(true);
     setMobileMenuOpen(false);
   };
 
@@ -182,28 +178,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {!loading && (
                   <div className="space-y-3">
                     {user ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-medium">
-                            {user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-900 dark:text-white text-sm">
-                              {user?.user_metadata?.full_name || user?.email || 'User'}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {user?.email}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleChatOpen}
-                          className="w-full flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl font-medium transition-colors"
-                        >
-                          <MessageCircle size={18} />
-                          AI Chat Assistant
-                        </button>
-                      </div>
+                      <UserMenu onChatOpen={handleChatOpen} isMobile={true} />
                     ) : (
                       <div className="space-y-3">
                         <button
@@ -255,7 +230,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         
         {/* Tooltip - Hidden on mobile */}
         <div className="hidden md:block absolute right-full mr-4 px-3 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-          {user ? 'Chat with AI Assistant' : 'Sign in to chat with AI'}
+          Chat with AI Assistant
           <div className="absolute top-1/2 -right-1 transform -translate-y-1/2 w-2 h-2 bg-slate-900 dark:bg-slate-100 rotate-45"></div>
         </div>
       </motion.button>
