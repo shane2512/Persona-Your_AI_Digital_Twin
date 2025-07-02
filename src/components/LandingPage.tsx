@@ -82,11 +82,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onStartReflecti
         >
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-none">
             <span className="bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
-              Your Digital Twin
+              Your AI-Powered
             </span>
             <br />
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-              for Daily Decisions
+              Self-Reflection Tool
             </span>
           </h1>
           
@@ -106,7 +106,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onStartReflecti
             onClick={onStartReflection}
             className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl text-lg font-semibold transition-all duration-300 shadow-2xl shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-105"
           >
-            Start Your Reflection
+            Start Your Reflection Journey
             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
           </button>
           
@@ -131,7 +131,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onStartReflecti
           </div>
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
             <Zap size={16} />
-            <span className="text-sm font-medium">Instant Insights</span>
+            <span className="text-sm font-medium">Instant AI Insights</span>
           </div>
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
             <Users size={16} />
@@ -227,7 +227,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onStartReflecti
               onClick={onStartReflection}
               className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl text-lg font-semibold transition-all duration-300 shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-105"
             >
-              Try It Now
+              Try It Now - Free
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
             </motion.button>
           </motion.div>
@@ -238,7 +238,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onStartReflecti
             transition={{ duration: 0.6, delay: 0.4 }}
             className="relative"
           >
-            {/* Placeholder for app screenshot/illustration */}
+            {/* App preview mockup */}
             <div className="relative bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 rounded-3xl p-8 border border-blue-200/50 dark:border-blue-800/50">
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
@@ -319,7 +319,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onStartReflecti
             onClick={onStartReflection}
             className="group flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl text-xl font-bold transition-all duration-300 shadow-2xl shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-105"
           >
-            Start Your Journey
+            Start Your Journey - Free
             <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform duration-300" />
           </button>
         </motion.div>
@@ -330,7 +330,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onStartReflecti
           transition={{ duration: 0.6, delay: 0.6 }}
           className="text-sm text-slate-500 dark:text-slate-500"
         >
-          Free to start • No credit card required • Privacy protected
+          Free to start • No credit card required • Privacy protected • Powered by Claude AI
         </motion.p>
       </section>
     </motion.div>

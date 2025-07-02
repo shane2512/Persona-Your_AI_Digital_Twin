@@ -1,14 +1,24 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://dazzling-cobbler-f22487.netlify.app/sitemap.xml
+
+# Additional crawling guidelines
+Crawl-delay: 1
+
+# Allow all major search engines
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-User-agent: Twitterbot
+User-agent: Slurp
 Allow: /
 
-User-agent: facebookexternalhit
+User-agent: DuckDuckBot
 Allow: /
 
-User-agent: *
+User-agent: Baiduspider
 Allow: /
